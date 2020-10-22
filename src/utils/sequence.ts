@@ -129,6 +129,7 @@ const toDayhoff = [
 
 export function distanceMatrix(tabSeq: TSequence[]) {
     // A 6-tuple in the Dayhoff alphabet can result in 6^6 combinations.
+    // A 6-tuple in the nucleic alphabet can result in 4^6 combinations.
     // To compute a distance between sequences, we evaluate how many 6-tuples
     // they have in common. To speed-up this process, we consider only a binary
     // comparison, i.e. does the tuple exists in the sequence or not (we ignore
@@ -137,24 +138,27 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 
     // Make the 6-tuple bitsets
 
+    const isProtein = tabSeq[0].type === SEQUENCE_TYPE.PROTEIN;
+    const alphabetSize = isProtein ? 6 : 4;
     const bitsetLength = Math.pow(6, 6);
-    const sixTuples = tabSeq.map(({ compressedSeq }) => {
+    const sixTuples = tabSeq.map((seq) => {
         const bitset = new BitArray(bitsetLength);
+        const seqAsNum = isProtein ? seq.compressedSeq : seq.encodedSeq;
 
         // Value for a tuple is 1st letter + 6*2nd letter + 36*3rd letter...
 
-        let tupleval = compressedSeq.slice(0, 5).reduce((acc, val, i) => {
-            return acc + val * Math.pow(6, i);
+        let tupleval = seqAsNum.slice(0, 5).reduce((acc, val, i) => {
+            return acc + val * Math.pow(alphabetSize, i);
         }, 0);
         bitset.set(tupleval);
 
         // Compute next tuple from previous one
 
-        const topLetterFactor = Math.pow(6, 5);
-        for (let i = 6, imax = compressedSeq.length; i < imax; i++) {
+        const topLetterFactor = Math.pow(alphabetSize, 5);
+        for (let i = 6, imax = seqAsNum.length; i < imax; i++) {
             // remove lowest letter from tuple
 
-            tupleval -= compressedSeq[i - 6];
+            tupleval -= seqAsNum[i - 6];
 
             // shift value by 6
 
@@ -162,7 +166,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 
             // add highest letter to tuple
 
-            tupleval += compressedSeq[i] * topLetterFactor;
+            tupleval += seqAsNum[i] * topLetterFactor;
 
             bitset.set(tupleval);
         }
