@@ -90,7 +90,7 @@ const BLASTZ = {
  * Recursively adds a constant center to all the matrix values
  * @param {Array} matrix Scoring matrix
  * @param {number} center half gap penalty (see Edgar's MUSCLE for details on
- * 			this optimization. In a few words, adding a constant half penalty
+ * 			this optimization). In a few words, adding a constant half penalty
  * 			to all substitution scores -i.e. matches-, makes it so that we
  * 			can skip to substract penalties when extending a gap as it will
  * 			be comparatively lower scored).
@@ -99,7 +99,12 @@ function addCenter(matrix: number[][], center: number) {
     return matrix.map((row) => row.map((val) => val + center));
 }
 
-export function setAlignmentParameters() {
+type AlignParam = {
+    gapOpen: number,
+    gapExtend: number
+}
+
+export function setAlignmentParameters(p?: Partial<AlignParam>) {
     var m;
 
     switch (typeSeq) {
@@ -111,7 +116,10 @@ export function setAlignmentParameters() {
             break;
     }
 
-    scoringMatrix = addCenter(m.matrix, m.center);
+    scoringMatrix = addCenter(
+        m.matrix,
+        p?.gapExtend ? -p.gapExtend * 2 : m.center
+    );
     gapOP = m.gapOP;
 }
 
@@ -126,4 +134,14 @@ export function getAlignmentParameters() {
         scoringMatrix,
         gapOP,
     };
+}
+
+/**
+ * set gapPenalties
+ * @param {object} penaltiesObject contains gapOpen and gapExtent penalties
+ *
+ */
+export function setGapPenalties(penalties: Partial<{gapOpen: number, gapExtend: number}>) {
+    if (penalties.gapOpen !== undefined) gapOP = penalties.gapOpen;
+    if (penalties.gapExtend !== undefined) gapEP = penalties.gapExtend;
 }
