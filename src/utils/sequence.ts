@@ -12,9 +12,13 @@ export enum SEQUENCE_TYPE {
 }
 
 export type TSequence = {
+    /** Sequence as a string */
     rawSeq: string;
+    /** Sequence encoded as a number array */
     encodedSeq: number[];
+    /** Sequence encoded as a number array in a compressed alphabet (Dayhoff) */
     compressedSeq: number[];
+    /** Sequence type enum (PROTEIN or NUCLEIC) */
     type: SEQUENCE_TYPE;
 };
 
