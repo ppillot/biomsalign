@@ -7,6 +7,12 @@
 
 import { TSequence } from './sequence';
 
+export enum NODE_TYPE {
+    LEAF,
+    NODE,
+    ROOT
+}
+
 export type TreeNode = {
     seq: TSequence;
     profile: any[];
@@ -15,9 +21,17 @@ export type TreeNode = {
     distance: number;
     numSeq: number[];
     msa: string[];
+    id: string,
+    weight: number,
+    parent: number,
+    depth: number,
+    type: NODE_TYPE
 };
 
-export type InternalNode = Omit<TreeNode, 'seq'>;
+export type InternalNode = Omit<TreeNode, 'seq'> & {
+    profile: any[],
+    tabWeight: number[]
+};
 
 export function isLeafNode(node: TreeNode | InternalNode): node is TreeNode {
     return 'seq' in node;
@@ -38,6 +52,7 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
 
     for (var i = 0; i < nbSeq; i++) {
         clusters[i] = {
+            type: NODE_TYPE.LEAF,
             seq: tSeq[i],
             profile: [],
             childA: i,
@@ -45,24 +60,46 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
             distance: 0,
             numSeq: [i],
             msa: [],
+            id: i.toString(),
+            weight: 0,
+            parent: -1,
+            depth: 0
         };
         tabIdx[i] = i;
     }
 
+    let lNode: InternalNode;
+    let lMinX: number;  // index in matrix of column with the min value
+    let lMinY: number;  // index in matrix of row with the min value.
     for (var i = 0, nbIterations = nbSeq - 1; i < nbIterations; i++) {
         // make a node from the min value in distance matrix
 
-        const node = findMinInDistanceMatrix(mD, tabIdx);
+        [lNode, lMinX, lMinY] = findMinInDistanceMatrix(mD, tabIdx);
+
+        // finalize node data with child properties
+        const lChildA = clusters[lNode.childA];
+        const lChildB = clusters[lNode.childB];
+
+        // TODO: lexicographic order here. Is it stable?
+        lNode.id = (lChildA.id < lChildB.id) ?
+              `|${ lChildA.id },${ lChildB.id }|`
+            : `|${ lChildB.id },${ lChildA.id }|`;
+
+        lNode.depth = Math.max(lChildA.depth, lChildB.depth) + 1;
+
+        lChildB.parent = lChildA.parent = clusters.length;
 
         // Add references to find back node
 
         tabIdx.push(nbSeq + i);
-        clusters.push(node);
+        clusters.push(lNode);
 
         // Recompute matrix
 
-        mD = recomputeDistMatrix(mD, node['previousA'], node['previousB'], tabIdx);
+        mD = recomputeDistMatrix(mD, lMinX, lMinY, tabIdx);
     }
+
+    clusters[clusters.length - 1].type = NODE_TYPE.ROOT;
 
     return clusters;
 }
@@ -74,15 +111,18 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
  * @param matrix
  * @param tabIdx
  */
-function findMinInDistanceMatrix(matrix: number[][], tabIdx: number[]) {
-    var min = 1,
+function findMinInDistanceMatrix (
+    matrix: number[][],
+    tabIdx: number[]
+): [InternalNode, number, number] {
+    let min = Infinity,
         minX = 0,
         minY = 0,
         l = matrix.length;
 
-    for (var i = 0; i < l; i++) {
+    for (let i = 0; i < l; i++) {
         // *2 speedup by restricting to the triangular matrix
-        for (var j = i + 1; j < l; j++) {
+        for (let j = i + 1; j < l; j++) {
             if (matrix[i][j] < min) {
                 min = matrix[i][j];
                 minX = i;
@@ -91,17 +131,22 @@ function findMinInDistanceMatrix(matrix: number[][], tabIdx: number[]) {
         }
     }
 
-    var a = {
+    const a: InternalNode = {
         profile: [],
         childA: tabIdx[minX],
         childB: tabIdx[minY],
         distance: min,
-        previousA: minX,
-        previousB: minY,
         msa: [],
         numSeq: [],
+        type: NODE_TYPE.NODE,
+        depth: 0,
+        id: '',
+        tabWeight: [],
+        parent: -1,
+        weight: 0
     };
-    return a;
+
+    return [a, minX, minY];
 }
 
 function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: number[]) {
@@ -119,7 +164,10 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
         // dissimilar, this corrects the value towards the distance to the
         // closest branch.
 
-        const avg = (0.1 * (matrix[i][x] + matrix[i][y])) / 2 + 0.9 * Math.min(matrix[i][x], matrix[i][y]);
+        const avg = (
+            0.1 * (matrix[i][x] + matrix[i][y])) / 2
+            + 0.9 * Math.min(matrix[i][x], matrix[i][y]
+        );
 
         // Add avg at the end of the row(i)
 
