@@ -140,12 +140,12 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     // how many time it actually occurs, which is a limitation of this method
     // for sequences with low complexity).
 
-    // Make the 6-tuple bitsets
+    // Make the 6/4-kmer bitsets
 
     const isProtein = tabSeq[0].type === SEQUENCE_TYPE.PROTEIN;
     const alphabetSize = isProtein ? 6 : 4;
     const bitsetLength = Math.pow(6, 6);
-    const sixTuples = tabSeq.map((seq) => {
+    const lKmer = tabSeq.map((seq) => {
         const bitset = new BitArray(bitsetLength);
         const seqAsNum = isProtein ? seq.compressedSeq : seq.encodedSeq;
 
@@ -178,17 +178,24 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         return bitset;
     });
 
-    // compute distance matrix
+    // compute distance matrix values
 
     const l = tabSeq.length;
     const distTab: number[][] = tabSeq.map(() => []);
+    let lKmerI: BitArray;
+    let lSeqILen: number;
+    let lDistance: number;
 
     for (let i = 0; i < l; i++) {
         distTab[i][i] = 0;
+        lKmerI = lKmer[i];
+        lSeqILen = tabSeq[i].compressedSeq.length;
+
         for (let j = i + 1; j < l; j++) {
-            const distance = 1 - sixTuples[i].getIntersectionSize(sixTuples[j]) / tabSeq[i].compressedSeq.length;
-            distTab[j][i] = distTab[i][j] = distance;
+            lDistance = 1 - lKmerI.getIntersectionSize(lKmer[j]) / lSeqILen;
+            distTab[j][i] = distTab[i][j] = lDistance;
         }
+
     }
     return distTab;
 }
