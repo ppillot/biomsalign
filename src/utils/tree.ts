@@ -13,7 +13,7 @@ export enum NODE_TYPE {
     ROOT
 }
 
-export type TreeNode = {
+export type LeafNode = {
     seq: TSequence;
     profile: any[];
     childA: number;
@@ -28,14 +28,16 @@ export type TreeNode = {
     type: NODE_TYPE
 };
 
-export type InternalNode = Omit<TreeNode, 'seq'> & {
+export type InternalNode = Omit<LeafNode, 'seq'> & {
     profile: any[],
     tabWeight: number[]
 };
 
-export function isLeafNode(node: TreeNode | InternalNode): node is TreeNode {
+export function isLeafNode(node: LeafNode | InternalNode): node is LeafNode {
     return 'seq' in node;
 }
+
+export type Tree = (LeafNode|InternalNode)[];
 
 /**
  * Cluster sequences based on a distance Matrix using the UPGMA algorithm
@@ -46,7 +48,7 @@ export function isLeafNode(node: TreeNode | InternalNode): node is TreeNode {
  * @returns
  */
 export function makeTree(mD: number[][], tSeq: TSequence[]) {
-    let clusters: (TreeNode | InternalNode)[] = [];
+    let clusters: Tree = [];
     let nbSeq = mD.length;
     let tabIdx: number[] = [];
 
