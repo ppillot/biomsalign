@@ -202,3 +202,88 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
     return matrix;
 }
+
+/**
+ * Provides sequence weight following clustalw weighting scheme
+ * From clwwt.cpp in MUSCLE (Edgar) :
+ * Compute weights by the CLUSTALW method.
+    Thompson, Higgins and Gibson (1994), CABIOS (10) 19-29;
+    see also CLUSTALW paper.
+
+    Weights are computed from the edge lengths of a rooted tree.
+
+    Define the strength of an edge to be its length divided by the number
+    of leaves under that edge. The weight of a sequence is then the sum
+    of edge strengths on the path from the root to the leaf.
+
+    Example.
+
+            0.2
+           |-----A     0.1
+         --|x       |------- B     0.7
+           |--------|y          |----------- C
+            0.3     |-----------|z
+                        0.4     |-------------- D
+                                        0.8
+
+    Edge	Length	Leaves	Strength
+    ----	-----	------	--------
+    xy		0.3		3		0.1
+    xA		0.2		1		0.2
+    yz		0.4		2		0.2
+    yB		0.1		1		0.1
+    zC		0.7		1		0.7
+    zD		0.8		1		0.8
+
+    Leaf	Path		Strengths			Weight
+    ----	----		---------			------
+    A		xA			0.2					0.2
+    B		xy-yB		0.1 + 0.1			0.2
+    C		xy-yz-zC	0.1 + 0.2 + 0.7		1.0
+    D		xy-yz-zD	0.1 + 0.2 + 0.8		1.1
+    * @param   {object} cluster cluster tree computed
+    * @returns {array} array containing weights for each node in the cluster tree
+    */
+ export function clustalWeights (cluster: Tree) {
+    const tabWeights: number[] = [];
+    let totalWeight = 0;
+    const root = cluster[cluster.length - 1];
+
+    function setWeight (node: LeafNode|InternalNode) {
+        var edgeLength = 0,
+            nbLeaves = 0;
+
+        switch (node.type) {
+        case NODE_TYPE.ROOT:
+            node.weight = 0;
+            setWeight(cluster[node.childA]);
+            setWeight(cluster[node.childB]);
+            break;
+        case NODE_TYPE.NODE:
+            edgeLength = cluster[node.parent].distance - node.distance;
+            nbLeaves = node.id.split(',').length;
+            node.weight = cluster[node.parent].weight + edgeLength / nbLeaves;
+
+            setWeight(cluster[node.childA]);
+            setWeight(cluster[node.childB]);
+            break;
+        case NODE_TYPE.LEAF:
+            edgeLength = cluster[node.parent].distance;
+            node.weight = cluster[node.parent].weight + edgeLength;
+            totalWeight += node.weight;
+            break;
+        }
+    };
+
+    setWeight(root);
+
+    //normalize weights to 1
+    // TODO: does is matter that internal nodes weights are not normalized?
+    var i = 0;
+    while (cluster[i].type == NODE_TYPE.LEAF) {
+        tabWeights[i] = cluster[i].weight /= totalWeight;
+        i++;
+    }
+
+    return tabWeights;
+};
