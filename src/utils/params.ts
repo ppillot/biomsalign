@@ -131,6 +131,7 @@ export function setSeqType(type: SEQUENCE_TYPE) {
 
 export function getAlignmentParameters() {
     return {
+        type: typeSeq,
         scoringMatrix,
         gapOP,
     };

@@ -6,7 +6,7 @@
  */
 
 import { getAlignmentParameters } from './params';
-import { aaToNum } from './sequence';
+import { aaToNum, nucToNum, SEQUENCE_TYPE } from './sequence';
 
 export function sumOfPairsScorePP(profA: Profile, profB: Profile) {
     var score = 0,
@@ -61,8 +61,9 @@ export type Profile = {
  */
 class ProfPos {
     m_bAllGaps = false;
-    m_uSortOrder = []; //acides aminés triés par ordre d'abondance
+    m_uSortOrder: number[] = []; //acides aminés triés par ordre d'abondance
     m_fcCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //effectif de chaque aa dans le profil à cette position
+    m_wCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //pondération pour chaque aa dans le profil à cette position
     m_LL = 1;
     m_LG = 0;
     m_GL = 0;
@@ -72,76 +73,96 @@ class ProfPos {
     m_fOcc = 1; //fréquence d'occupation de la position (non indels)
     m_fcStartOcc = 0; //fréquence d'occupation par le début d'un gap
     m_fcEndOcc = 0;
-    m_scoreGapOpen = 0; //score pour l'ouverture d'un gap à cette position
-    m_scoreGapClose = 0; //score pour la fermeture d'un gap à cette position
+    m_ScoreGapOpen = 0; //score pour l'ouverture d'un gap à cette position
+    m_ScoreGapClose = 0; //score pour la fermeture d'un gap à cette position
     nbSeq = 0; //nb de séquences dans le profil
 }
 
-/**calcule le profil à partir d'un alignement
- * @msa : alignement reçu sous la forme d'un tableau contenant chaque séquence
- * @weight : tableau indiquant le "poids" de chaque séquence
+/**
+ * Compute Profile from MSA
+ * Returns an array of object with at each position of the profile the
+ * corresponding am. ac. counts, nb of indels for gap closing/opening/extension
+ * @param {string[]} pMSA: aligned sequences as an array of strings with `-` as
+ *                          indels.
+ * @param {number}  pGapO: gap opening penalty
+ * @param {number[]} pWeights : weight of each sequence
  */
-export function profileFromMSA(msa: string[], gapO: number, gapE: number) {
-    //renvoie un tableau à 2D contenant pour chaque position du profil, le nombre d'acides aminés,
-    //le nombre de indels dans un gap en ouverture, en fermeture ou en extension
-    var longueur = msa[0].length, //taille totale de l'alignement (nb cols)
-        aa = '', // acide aminé en code à 1 lettre
-        na = 0; // acide aminé en n° (correspondant aux tables)
-    var tab = Array(longueur); //tableau contenant le profil
-    //var weight = (weight || (function(l){var t=[], q=1/l; for (var i=0;i<l;i++) {t.push(q)} return t})(msa.length)  ); //faire un tableau
-    //tableau contenant la pondération de chaque séquence
-    var uHydrophobicRunLength = 0, //calcul de la taille d'une fenêtre hydrophobe (si elle existe) pour éviter d'insérer des gaps au sein de celle-ci
-        w = 1 / msa.length; //pondération d'une séquence
-    //console.log( weight );
+export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[]) {
+    /** alignment length (columns count) */
+    const l = pMSA[0].length;
+
+    let aa = '', // amino acid name (1 letter code)
+        na = 0,  // amino acid # (in lexical order)
+        nbResMax = 0,
+        tabCodeResNum: Uint8Array;
+
     const params = getAlignmentParameters();
 
-    gapO = gapO || params.gapOP;
-    gapE = gapE || params.gapEP;
+    var prof: ProfPos[] = new Array(l); // profile
+    if (params.type === SEQUENCE_TYPE.NUCLEIC) {
+        nbResMax = 4;
+        tabCodeResNum = nucToNum;
+    } else {
+        nbResMax = 20;
+        tabCodeResNum = aaToNum;
+    }
 
-    for (var col = 0; col < longueur; col++) {
-        tab[col] = new ProfPos();
-        var fGap = 0;
+    //uHydrophobicRunLength = 0, // hydrophobic window (to avoid introducing gaps within)
+    let w = 0, //sequence weight
+        totalW = pWeights.reduce((a, b) =>  a + b, 0);
 
-        for (var numSeq = 0, max = msa.length; numSeq < max; numSeq++) {
-            tab[col].nbSeq = max;
-            //w = weight[numSeq];
-            aa = msa[numSeq][col];
-            if (aa == '_') {
+    const lGapO = pGapO || params.gapOP;
+
+    for (let col = 0; col < l; col++) {
+        prof[col] = new ProfPos();
+        let fGap = 0;
+
+        for (let numSeq = 0, max = pMSA.length; numSeq < max; numSeq++) {
+
+            prof[col].nbSeq = max;
+            w = pWeights[numSeq] / totalW; //sequences individual weights are normalized to the profile total weights
+            aa = pMSA[numSeq][col];
+            if (aa === '-') {
                 fGap += w;
-                if (col == 0) {
-                    tab[col].m_fcStartOcc += w;
-                } else if (msa[numSeq][col - 1] != '_') {
-                    tab[col].m_fcStartOcc += w;
+
+                if (col === 0) {
+                    prof[col].m_fcStartOcc += w;
+                } else if (pMSA[numSeq][col - 1] !== '-') {
+                    prof[col].m_fcStartOcc += w;
                 }
-                if (col == longueur - 1) {
-                    tab[col].m_fcEndOcc += w;
-                } else if (msa[numSeq][col + 1] != '_') {
-                    tab[col].m_fcEndOcc += w;
+
+                if (col === l - 1) {
+                    prof[col].m_fcEndOcc += w;
+                } else if (pMSA[numSeq][col + 1] !== '-') {
+                    prof[col].m_fcEndOcc += w;
                 }
+
             } else {
-                na = aaToNum[aa.charCodeAt(0)];
-                tab[col].m_fcCounts[na]++;
-                if (tab[col].m_fcCounts[na] == 1) {
-                    tab[col].m_uSortOrder.push(na);
-                    tab[col].m_uResidueGroup++;
+                na = tabCodeResNum[aa.charCodeAt(0)];
+                prof[col].m_fcCounts[na]++;
+                prof[col].m_wCounts[na] += w;
+                if (prof[col].m_fcCounts[na] === 1) {
+                    prof[col].m_uSortOrder.push(na);
+                    prof[col].m_uResidueGroup++;
                 }
             }
         }
-        tab[col].m_fOcc = 1 - fGap;
-        tab[col].m_scoreGapOpen = gapO * (1 - tab[col].m_fcStartOcc);
-        tab[col].m_scoreGapExtend = gapE * tab[col].m_fOcc;
-        tab[col].m_scoreGapClose = gapO * (1 - tab[col].m_fcEndOcc);
+        prof[col].m_fOcc = totalW - fGap;
+        prof[col].m_ScoreGapOpen = lGapO / 2 * (1 - prof[col].m_fcStartOcc);
+        prof[col].m_ScoreGapClose = lGapO / 2 * (1 - prof[col].m_fcEndOcc);
 
-        for (var aaNum = 0; aaNum < 20; aaNum++) {
-            for (var i = 0; i < tab[col].m_uResidueGroup; i++) {
-                var resProfNo = tab[col].m_uSortOrder[i];
-                tab[col].m_AAScores[aaNum] +=
-                    (tab[col].m_fcCounts[resProfNo] * params.scoringMatrix[aaNum][resProfNo]) / msa.length;
+        for (var aaNum = 0; aaNum < nbResMax; aaNum++) {
+            for (var i = 0; i < prof[col].m_uResidueGroup; i++) {
+                var resProfNo = prof[col].m_uSortOrder[i];
+                prof[col].m_AAScores[aaNum] += prof[col].m_wCounts[resProfNo] * params.scoringMatrix[aaNum][resProfNo];
             }
         }
     }
-    tab[0].m_scoreGapOpen = 0;
-    tab[longueur - 1].m_scoreGapClose = 0;
+    //tab[0].m_ScoreGapOpen /= 2;
+    //tab[longueur - 1].m_ScoreGapOpen /= 2;
 
-    return tab;
+    //tab[0].m_ScoreGapClose /= 2;
+    //tab[longueur - 1].m_ScoreGapClose /= 2;
+
+    return prof;
 }
