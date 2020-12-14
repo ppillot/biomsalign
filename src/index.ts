@@ -571,150 +571,241 @@ class BioMSA {
         };
     }
 
-    /*
-     * fonction alignant 2 profils (alignement multiple x alignement multiple)
+    /**
+     * profile to profile alignment
+     * @param {object} noeudA a node object containing a multiple sequence alignment and its weight
+     * @param {object} noeudB a node object containing a multiple sequence alignment and its weight
+     * @param {integer} gE optional gap extension penalty parameter
+     * @param {integer} gO optional gap open penalty parameter
+     * @return {array) array containing aligned sequences
      */
 
-    private _MSAMSAAlignment(msaA: string[], msaB: string[], gE?: number, gO?: number) {
-        if (msaA.length < msaB.length) {
+    private _MSAMSAAlignment(
+        nodeA: InternalNode,
+        nodeB: InternalNode,
+        tSeqANames: number[],
+        tSeqBNames: number[]
+    ) {
+
+        var msaA, msaB, wB, wA, tSeqNames;
+
+        if (nodeA.msa.length < nodeB.msa.length) {
             //permutation des alignements : B reçoit le plus petit, réduit le nb d'itérations ensuite
-            var msa = msaB.slice();
-            msaB = msaA.slice();
-            msaA = msa;
+            msaB = nodeA.msa;
+            msaA = nodeB.msa;
+            wB = nodeA.tabWeight;
+            wA = nodeB.tabWeight;
+            tSeqNames = tSeqBNames.concat(tSeqANames);
+        } else {
+            msaA = nodeA.msa;
+            msaB = nodeB.msa;
+            wB = nodeB.tabWeight;
+            wA = nodeA.tabWeight;
+            tSeqNames = tSeqANames.concat(tSeqBNames);
         }
 
-        var n = msaA[0].length;
-        var m = msaB[0].length;
-        var Match: number[] = [],
-            Delete: number[] = [],
-            MatchPrev: number[] = [],
-            tbM: number[][] = [],
-            alignement = [];
-        var gapOpenA, gapOpenB, gapExtendA, gapExtendB, tb, mP, dP, lastInsert, acc, M0;
+        var n = msaA[0].length,
+            m = msaB[0].length,
+            Match = [],
+            Delete = [],
+            tbM = new Uint8Array(n * (m + 1)),
+            alignement = [],
+            match = 0,
+            gapOpenA = 0,
+            gapOpenB = 0,
+            gapExtendA = 0,
+            gapExtendB = 0,
+            tb = 0,
+            lastInsert = 0,
+            prevLastInsert = 0,
+            M0 = 0,
+            prevMatch = 0,
+            prevDelete = 0,
+            deletej_1 = 0,
+            inserti_1 = 0,
+            profAGapOP = 0,
+            profAGapCP = 0,
+            profAAAScores = [];
 
-        setAlignmentParameters(true);
-        const params = getAlignmentParameters();
+        const _params = getAlignmentParameters();
 
-        var gapEP = gE || params.gapEP,
-            gapOP = gO || params.gapOP;
+        var gapOP = _params.gapOP;
 
         //conversion du MSA en profil
-        var profB = profileFromMSA(msaB, gapOP, gapEP);
-        var profA = profileFromMSA(msaA, gapOP, gapEP);
+        var profB = profileFromMSA(msaB, gapOP, wB);
+        var profA = profileFromMSA(msaA, gapOP, wA);
 
+        var profBGapOPTab = [],
+            profBGapCPTab = [];
+
+        for (var i = 0; i < profB.length; i++) {
+            profBGapOPTab.push(profB[i].m_ScoreGapOpen);
+            profBGapCPTab.push(profB[i].m_ScoreGapClose);
+        }
+        /*var profBWCountsTab = [];
+        for (var i = 0; i < profB.length; i++) {
+            profBWCountsTab.push(profB[i].m_wCounts);
+        }*/
+        //$log.debug(profBWCountsTab);
         //remplissage de la première ligne et de la première colonne de la matrice
         //INITIALISATION
-        MatchPrev[0] = sumOfPairsScorePP(profA[0], profB[0]);
+        Match[0] = 0; //_utils.sumOfPairsScorePP(profA[0], profB[0]);
         Delete[0] = -Infinity;
         for (var j = 1; j <= m; j++) {
-            MatchPrev[j] = MatchPrev[0] + j * gapEP + profB[0].m_scoreGapOpen;
+            Match[j] = profBGapOPTab[0] + profBGapCPTab[j - 1] / 2;
             Delete[j] = -Infinity;
         }
 
-        M0 = profA[0].m_scoreGapOpen;
+        M0 = profA[0].m_ScoreGapOpen;
         //remplissage des matrices
         //RECURSION
-        for (var i = 1; i <= n; i++) {
-            M0 += profA[i - 1].m_scoreGapExtend;
-            Match[0] = M0;
-            tbM[i] = [];
-            lastInsert = -Infinity;
-            Delete[0] = MatchPrev[0] + profA[i - 1].m_scoreGapOpen;
+        for (i = 1; i <= n; i++) {
+            profAAAScores = profA[i - 1].m_AAScores;
+            profAGapOP = profA[i - 1].m_ScoreGapOpen;
+            profAGapCP = profA[i - 1].m_ScoreGapClose;
 
-            for (var j = 1; j <= m; j++) {
+            //M0 += profAGapEP / 2;
+
+            prevMatch = M0 + profAGapCP / 2;
+            lastInsert = -Infinity;
+            Delete[0] = profA[0].m_ScoreGapOpen;
+
+            for (j = 1; j <= m; j++) {
                 tb = 0;
 
                 //Delete i,j score computation
-                gapOpenA = MatchPrev[j] + profA[i - 1].m_scoreGapOpen; //
-                gapExtendA = Delete[j] + profA[i - 1].m_scoreGapExtend;
+                gapOpenA = Match[j] + profAGapOP; //
+                gapExtendA = prevDelete = Delete[j];
+                if (j === m) {
+                    gapOpenA -= profAGapOP / 2;
+                }
+
                 if (gapOpenA >= gapExtendA) {
                     Delete[j] = gapOpenA;
                 } else {
-                    Delete[j] = gapExtendA;
+                    //Delete[j] = gapExtendA;
                     tb += 1;
                 }
+
                 //Insert i,j score computation
-                gapOpenB = Match[j - 1] + profB[j - 1].m_scoreGapOpen;
-                gapExtendB = lastInsert + profB[j - 1].m_scoreGapExtend;
+                gapOpenB = prevMatch + profBGapOPTab[j - 1];
+                gapExtendB = prevLastInsert = lastInsert;
+                if (i === n) {
+                    gapOpenB -= profBGapOPTab[j - 1] / 2;
+                }
 
                 if (gapOpenB >= gapExtendB) {
                     lastInsert = gapOpenB;
                 } else {
-                    lastInsert = gapExtendB;
+                    //lastInsert = gapExtendB;
                     tb += 2;
                 }
 
                 //Match i,j score computation
-                const match = MatchPrev[j - 1] + sumOfPairsScorePP(profA[i - 1], profB[j - 1]);
-                if (match >= lastInsert) {
-                    if (match >= Delete[j]) {
-                        //match is optimal
-                        Match[j] = match;
-                    } else {
-                        //delete is optimal
-                        Match[j] = Delete[j];
+                match = Match[j - 1];
+                var kmax = profB[j - 1].m_uResidueGroup,
+                    k = 0;
+                while (k < kmax) {
+                    var resProfNo = profB[j - 1].m_uSortOrder[k];
+                    match += profB[j - 1].m_wCounts[resProfNo] * profAAAScores[resProfNo];
+                    k++;
+                }
+
+                //match = Match[j - 1] + _utils.sumOfPairsScorePP3(profAAAScores, profB[j - 1]);
+                deletej_1 = Delete[j] + profAGapCP;
+                inserti_1 = prevLastInsert + profBGapCPTab[j - 1];
+
+                if (j === 1) { //terminal penalties are halved
+                    deletej_1 -= profAGapCP / 2;
+                }
+                if (i === 1) {
+                    inserti_1 -= profBGapCPTab[0] / 2;
+                }
+                if ((j === m) && (i === n)) {
+                    deletej_1 -= profAGapCP / 2;
+                    inserti_1 -= profBGapCPTab[m - 1] / 2;
+                }
+
+                Match[j - 1] = prevMatch;
+
+                if (match >= inserti_1) {
+                    if (match >= deletej_1) { //match is optimal
+                        prevMatch = match;
+                    } else { //delete is optimal
+                        prevMatch = deletej_1;
                         tb += 4;
                     }
+
                 } else {
-                    if (lastInsert >= Delete[j]) {
-                        //insert is optimal
-                        Match[j] = lastInsert;
+                    if (inserti_1 >= deletej_1) { //insert is optimal
+                        prevMatch = inserti_1;
                         tb += 8;
-                    } else {
-                        //delete is optimal
-                        Match[j] = Delete[j];
+                    } else { //delete is optimal
+                        prevMatch = deletej_1;
                         tb += 4;
                     }
                 }
-                tbM[i][j] = tb;
+                tbM[i * m + j] = tb;
             }
-            MatchPrev = Match.slice();
+            Match[m] = prevMatch;
         }
+        var score = Math.max(match, lastInsert, Delete[j - 1]);
 
         //traceback
-        var i = n,
-            j = m;
+        i = n;
+        j = m;
+        k = 0;
+        var indice = n * m,
+            k = 0,
+            p = 0;
         alignement = msaA.concat(msaB);
 
-        var matriceActive = 0,
+        var matriceActive = (tb & 12) >> 2,
             value = 0;
-        while (i > 0 && j > 0) {
-            if (matriceActive == 0) {
-                value = tbM[i][j] >> 2;
-                if (value == 0) {
+        while ((i > 0) && (j > 0)) {
+            indice = i * m + j;
+            if (matriceActive === 0) {
+                value = tbM[indice] >> 2;
+                if (value === 0) {
                     i--;
                     j--;
                 }
             } else {
-                if (matriceActive == 2) {
-                    for (var k = 0; k < msaA.length; k++) {
-                        alignement[k] = alignement[k].substring(0, i) + '_' + alignement[k].substring(i);
+                if (matriceActive === 2) {
+                    for (k = 0; k < msaA.length; k++) {
+                        alignement[k] = alignement[k].substring(0, i) + '-' + alignement[k].substring(i);
                     }
-                    value = tbM[i][j] & 2;
+                    value = tbM[indice] & 2;
                     j--;
                 } else {
-                    for (var k = msaA.length; k < alignement.length; k++) {
-                        alignement[k] = alignement[k].substring(0, j) + '_' + alignement[k].substring(j);
+                    for (k = msaA.length; k < alignement.length; k++) {
+                        alignement[k] = alignement[k].substring(0, j) + '-' + alignement[k].substring(j);
                     }
-                    value = tbM[i][j] & 1;
+                    value = tbM[indice] & 1;
                     i--;
                 }
             }
             matriceActive = value;
         }
         //fin des profils par ajout direct de la fin de séquence
-        if (j == 0) {
-            var p = '_'.repeat(i);
-            for (var k = msaA.length; k < alignement.length; k++) {
-                alignement[k] = p + alignement[k];
+        let lPadding: string;
+        if (j === 0) {
+            lPadding = '-'.repeat(i);
+            for (k = msaA.length; k < alignement.length; k++) {
+                alignement[k] = lPadding + alignement[k];
             }
-        } else {
-            //i==0
-            var p = '_'.repeat(j);
-            for (var k = 0; k < msaA.length; k++) {
-                alignement[k] = p + alignement[k];
+        } else { //i==0
+            lPadding = '-'.repeat(j);
+            for (k = 0; k < msaA.length; k++) {
+                alignement[k] = lPadding + alignement[k];
             }
         }
-        return alignement;
+
+        return {
+            alignment: alignement,
+            tSeqNames: tSeqNames,
+            score: score
+        };
     }
+
 }
