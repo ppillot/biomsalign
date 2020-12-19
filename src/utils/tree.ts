@@ -74,15 +74,16 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
     let lMinX: number;  // index in matrix of column with the min value
     let lMinY: number;  // index in matrix of row with the min value.
     for (var i = 0, nbIterations = nbSeq - 1; i < nbIterations; i++) {
-        // make a node from the min value in distance matrix
+        // Make a node from the min value in distance matrix
 
         [lNode, lMinX, lMinY] = findMinInDistanceMatrix(mD, tabIdx);
 
-        // finalize node data with child properties
+        // Finalize node data with child properties
         const lChildA = clusters[lNode.childA];
         const lChildB = clusters[lNode.childB];
 
-        // TODO: lexicographic order here. Is it stable?
+        // The id is canonical as long as the same lexical sorting is applied.
+        // This will be used later on to compare trees topologies.
         lNode.id = (lChildA.id < lChildB.id) ?
               `|${ lChildA.id },${ lChildB.id }|`
             : `|${ lChildB.id },${ lChildA.id }|`;
@@ -286,4 +287,56 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
     }
 
     return tabWeights;
+};
+
+/**
+ * Compare trees topologies. If the topologies are different, this procedure
+ * copies over the msa from the subtress that are identical between treeA and
+ * treeB.
+ */
+export function compareTrees (treeA: Tree, treeB: Tree) {
+    var i = 0,
+        nbLeaves = (treeA.length + 1) / 2 + 1, //chaque noeud possède deux descendants (peuvent être un noeud ou une feuille). Le nombre de noeud est égal au nombre de feuilles -1
+        //nbNodes = nbLeaves - 1,
+
+        compareParentNodes = function (nodeA: InternalNode|LeafNode, nodeB: InternalNode|LeafNode) {
+            const lParentA = treeA[nodeA.parent];
+            const lParentB = treeB[nodeB.parent];
+
+            if (lParentA.id === lParentB.id) {  // Continue as long as canonical ids are identical
+
+                if (lParentB.msa.length > 0) { // This node has been visited
+                    return;
+                }
+
+                lParentB.msa = lParentA.msa;        // copy the MSA already computed to that node
+                lParentB.numSeq = lParentA.numSeq;  // Also copy the sequence order
+
+                if (lParentA.type !== NODE_TYPE.ROOT) { // Continue as long as root has not been reached
+                    compareParentNodes(lParentA, lParentB);
+                }
+            }
+        };
+
+    // When both trees have the same canonical ids to their roots, they are
+    // identical in topology.
+    if (treeA[treeA.length - 1].id === treeB[treeB.length - 1].id) {
+        return true;
+    }
+
+
+    /*
+        Otherwise, both trees must be compared pairwise to retain the alignments
+        that have already been computed.
+        Note : treeA and treeB have the same leaves, in the same order.
+        Traverse the trees in parallel, from the leaves to the root for as
+        long as the nodes topologies is identical.
+        By avoiding visited nodes, this procedure is O(n).
+    */
+    for (i = 0; i < nbLeaves; i++) {
+        compareParentNodes(treeA[i], treeB[i]);
+    }
+
+    return false;
+
 };
