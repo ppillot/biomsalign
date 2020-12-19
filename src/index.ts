@@ -9,13 +9,15 @@ import { profileFromMSA, sumOfPairsScorePP, sumOfPairsScoreSP } from './utils/pr
 
 import {
     compressToDayhoff,
+    distanceKimura,
     distanceMatrix,
     encodeSeqToNum,
     getSequenceType,
     SEQUENCE_TYPE,
+    sortMSA,
     TSequence,
 } from './utils/sequence';
-import { isLeafNode, makeTree, LeafNode, clustalWeights, InternalNode, NODE_TYPE } from './utils/tree';
+import { isLeafNode, makeTree, LeafNode, clustalWeights, InternalNode, NODE_TYPE, compareTrees } from './utils/tree';
 
 enum TRACE_BACK {
     MATCH     = 0,
@@ -299,52 +301,106 @@ class BioMSA {
             };
     };
 
-    private _progressiveAlignment(seq: TSequence[]) {
-        //calcul des ressemblances par paires (cf. k-mers binary Muscle)
-        //console.time("distances");
-        var matriceDistances = distanceMatrix(seq);
-        //console.timeEnd("distances");
-        //console.log("matrice distances : ",matriceDistances);
+    private _progressiveAlignment (seq: TSequence[]) {
 
-        //construction d'un arbre
-        //console.time("arbre guide");
-        var tree = makeTree(matriceDistances.slice(), seq);
-        //console.timeEnd("arbre guide")
-        //console.log(tree);
+        const treeAlign = (node: InternalNode, tabWeight: number[]) => {
 
-        //Alignement selon l'arbre
-        //console.time("alignement");
+            var nodeA = tree[node.childA],
+                nodeB = tree[node.childB];
+            let result = {} as {alignment: string[], tSeqNames: number[], score: number};
 
-        //parcours des noeuds de l'arbre
-        var nbNoeuds = tree.length;
+            // note: msa property has already been computed when the tree
+            // has had subtrees from a previous alignment, copied over.
+            // Then, they can be skipped to avoid costly computations.
 
-        for (var i = 0; i < nbNoeuds; i++) {
-            if ('seq' in tree[i]) continue; //on se déplace jusqu'au premier noeud
-
-            var noeudA = tree[tree[i]['childA']];
-            var noeudB = tree[tree[i]['childB']];
-
-            if (isLeafNode(noeudA)) {
-                //A est une séquence
-                if (isLeafNode(noeudB)) {
-                    //B est une séquence
-
-                    tree[i].msa = this._pairwiseAlignment(noeudA.seq, noeudB.seq);
-                } else {
-                    //B est un alignement
-
-                    tree[i].msa = this._MSASeqAlignment(noeudA.seq, noeudB.msa);
-                }
-            } else {
-                //A et B sont des alignements
-                tree[i].msa = this._MSAMSAAlignment(noeudA.msa, noeudB.msa);
+            if (!isLeafNode(nodeA) && (nodeA.msa.length === 0)) {
+                treeAlign(nodeA, tabWeight);
             }
+
+            if (!isLeafNode(nodeB) && (nodeB.msa.length === 0)) {
+                treeAlign(nodeB, tabWeight);
+            }
+
+            // Now nodeA and nodeB are either leaf or msa, we can align them
+            if (isLeafNode(nodeA)) { //A is a single sequence
+                if (isLeafNode(nodeB)) { //B is a single sequence
+                    result = this._pairwiseAlignment(nodeA.seq, nodeB.seq, nodeA.numSeq, nodeB.numSeq);
+                } else { //B is a MSA
+                    nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
+
+                    result = this._MSASeqAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+                }
+            } else if (!isLeafNode(nodeB)) { // A & B are both MSA
+
+                nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
+                nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
+
+                result = this._MSAMSAAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+            }
+            node.msa = result.alignment;
+            node.numSeq = result.tSeqNames;
+
+            return result.score;
         }
 
-        //console.timeEnd("alignement");
-        //console.log(msa);
+        // Compute fast pair similarity (see k-mers binary Muscle)
 
-        return tree[tree.length - 1].msa;
+        const lDistMatrixKMers = distanceMatrix(seq);
+
+
+        // Compute tree from distance matrix
+
+        const tree = makeTree(lDistMatrixKMers, seq);
+        const root = tree[tree.length - 1] as InternalNode;
+
+        // Compute weights (this is used to prevent close sequences to skew
+        // the computation toward them, which would result in not disfavouring
+        // gaps in their already aligned sequences).
+
+        const weights = clustalWeights(tree);
+
+        // First alignment following guide tree
+
+        const score1 = treeAlign (root, weights);
+        let msa = sortMSA(root.msa, root.numSeq); // sort sequences in the order they came in
+
+        // Refinement.
+        // Now that we got a first alignment of all sequences, let see if some
+        // sequences have a better likeliness now than what was found in the
+        // first place with the fast k-mer based distance.
+        // First step: build a distance matrix based on identities, pondered
+        // using Kimura method for long branches (effective mutations are >
+        // to measured mutations)
+
+        const lDistMatrixKimura = distanceKimura(msa);
+
+        // compute new tree
+        var tree2 = makeTree(lDistMatrixKimura, seq);
+        const root2 = tree2[tree2.length - 1] as InternalNode;
+
+        // compare trees.
+        // Note: Impure function, it will modify tree2 if differences are found
+        // to take advantage of all the alignments already compared.
+        var treeIdentity = compareTrees(tree, tree2);
+
+        if (treeIdentity === true) { // No possible improvement
+            return msa;
+        } else {
+            //on refait l'alignement progressif selon le nouvel arbre
+            var tabWeight2 = clustalWeights(tree2);
+
+            //$log.debug(tabWeight);
+            const score2 = treeAlign(root2, tabWeight2);
+
+            //$log.debug('scores:', score1, score2);
+            //var matriceDistancesKimura2 = _utils.distancesKimura(tree2[tree2.length - 1].msa);
+
+            if (score2 > score1) {
+                msa = sortMSA(root2.msa, root2.numSeq);
+            }
+            return msa;
+        }
+
     }
 
     /**
