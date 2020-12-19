@@ -199,3 +199,133 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     }
     return distTab;
 }
+
+export function sortMSA (msa: string[], order: number[]) {
+    return order.map(v => msa[v]);
+}
+
+const dayhoffPams = [
+    195, /* 75.0% observed d; 195 PAMs estimated = 195% estimated d */
+    196, /* 75.1% observed d; 196 PAMs estimated */
+    197, 198, 199, 200, 200, 201, 202, 203,
+    204, 205, 206, 207, 208, 209, 209, 210, 211, 212,
+    213, 214, 215, 216, 217, 218, 219, 220, 221, 222,
+    223, 224, 226, 227, 228, 229, 230, 231, 232, 233,
+    234, 236, 237, 238, 239, 240, 241, 243, 244, 245,
+    246, 248, 249, 250, /* 250 PAMs = 80.3% observed d */
+    252, 253, 254, 255, 257, 258,
+    260, 261, 262, 264, 265, 267, 268, 270, 271, 273,
+    274, 276, 277, 279, 281, 282, 284, 285, 287, 289,
+    291, 292, 294, 296, 298, 299, 301, 303, 305, 307,
+    309, 311, 313, 315, 317, 319, 321, 323, 325, 328,
+    330, 332, 335, 337, 339, 342, 344, 347, 349, 352,
+    354, 357, 360, 362, 365, 368, 371, 374, 377, 380,
+    383, 386, 389, 393, 396, 399, 403, 407, 410, 414,
+    418, 422, 426, 430, 434, 438, 442, 447, 451, 456,
+    461, 466, 471, 476, 482, 487, 493, 498, 504, 511,
+    517, 524, 531, 538, 545, 553, 560, 569, 577, 586,
+    595, 605, 615, 626, 637, 649, 661, 675, 688, 703,
+    719, 736, 754, 775, 796, 819, 845, 874, 907, 945, /* 92.9% observed; 945 PAMs */
+    988 /* 93.0% observed; 988 PAMs */
+];
+
+/**
+ * Computes the ratio between the number of matches in both sequences and the shortest sequence length
+ * @param   {string} [seqA='',] sequence A, may contain indels
+ * @param   {string} seqB       sequence B, may contain indels
+ * @returns {number} fractional identity between both sequences
+ */
+function fractionalIdentity(seqA: string, seqB: string) {
+    seqA = seqA || '';
+    seqB = seqB || '';
+
+    var match = 0,
+        tokenA = '',
+        tokenB = '',
+        lA = 0,
+        lB = 0,
+        maxI = seqA.length;
+
+    for (var i = 0; i < maxI; i++) {
+        tokenA = seqA.charAt(i);
+        tokenB = seqB.charAt(i);
+
+        if ((tokenA === '-') || (tokenB === '-')) {
+            lA += (tokenA !== '-') ? 1 : 0;
+            lB += (tokenB !== '-') ? 1 : 0;
+            continue;
+        } else {
+            lA++;
+            lB++;
+            if (tokenA === tokenB) {
+                match++;
+            }
+        }
+    }
+    return match / Math.min(lA, lB);
+}
+
+
+/**
+ * Compute distance matrix between aligned sequences from a MSA.
+ * Corrects distances using Kimura method.
+ */
+export function distanceKimura (msa: string[]) {
+
+    const l = msa.length; // nb of sequences
+    const distMatrix = new Array(l); // matrix l x l
+    let dPctId = 0; // Percentage of Identity between sequences
+    let p = 0;      // Percentage of difference between sequences
+    let pIndex = 0; // When p > 0.75 Kimura correction is replaced by a lookup table at this index
+    let dk = 0;     // Computed distance
+
+    //parcours de la matrice
+    for (var i = 0; i < l; i++) {
+
+        if ( distMatrix[i] === undefined ) {
+            distMatrix[i] = new Array(l);
+        }
+
+        distMatrix[i][i] = 0;
+
+        for (var j = i + 1; j < l; j++) {
+
+            if (distMatrix[j] === undefined) {
+                distMatrix[j] = new Array(l);
+            } else if (distMatrix[i][j] !== undefined) {
+                continue;
+            }
+
+            //  "As sequences diverge, there is an increasing probability of
+            // multiple mutations at a single site. To correct for this, we use
+            // the following distance estimate" Edgar. BMC Bioinformatics 2004
+
+            dPctId = fractionalIdentity(msa[i], msa[j]);
+            p = 0, 1 - dPctId;
+
+            // Kimura formula used for differences < 75%
+            if (p < 0.75) {
+
+                dk = - Math.log(1 - p - (p * p) / 5);
+                dk = Math.max(0, dk);   // clamp to 0 as the above can return -0!!!
+
+            } else if (p > 0.93) {
+                dk = 10;
+            } else {
+
+                pIndex = Math.floor((p - 0.75) * 1000 + 0.5);
+
+                if ((pIndex < 0) || (pIndex >= dayhoffPams.length)) {
+                    console.trace('Dayhoff parameter not found');
+                } else {
+                    dk = dayhoffPams[pIndex] / 100;
+                }
+
+            }
+            distMatrix[i][j] = dk;
+            distMatrix[j][i] = dk;
+        }
+    }
+
+    return distMatrix;
+};
