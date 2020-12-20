@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+
+<head>
+    <title>biomsa</title>
+    <script src="../dist/biomsa.js"></script>
+    <style>
+        body,
+        html {
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        h1 {
+            border-bottom: solid 1px #666;
+            margin-right: 30%;
+        }
+
+        h2 {
+            color: #444444;
+        }
+
+        code,
+        pre {
+            padding: 1px;
+            border: 1px solid #AAA;
+            background: #EEE;
+        }
+
+        pre {
+            width: 60%;
+        }
+
+        #conteneur_sequences {
+            border: 2px dashed brown;
+            margin: 2em;
+        }
+
+        #conteneur_sequences_alignement {
+            border: 2px dashed darkgreen;
+            margin: 2em;
+        }
+
+        #barre_defilement {
+            background: #008000;
+            position: relative;
+        }
+
+        #curseur {
+            background: #FFFF88;
+            position: absolute;
+        }
+    </style>
+
+
+</head>
+
+<body >
+
+    <textarea cols="80" rows="20" id="input"></textarea>
+
+    <br />
+    <input type="submit" value="Align" id="button" />
+    <br />
+
+    <textarea cols="80" rows="20" id="output"></textarea>
+    <script>
+        function align() {
+            var seqInput = document.getElementById('input').value;
+            var seq = seqInput.split('\n');
+
+            var msa = new biomsa.BioMSA();
+            var result = msa.align(seq).then(result => {
+                document.getElementById('output').value = result.join('\n');
+            });
+        }
+        document.getElementById('button').addEventListener('click', align);
+    </script>
+</body>
+
+</html>
