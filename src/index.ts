@@ -27,7 +27,7 @@ enum TRACE_BACK {
     MATCH2DEL = 1 << 4
 };
 
-class BioMSA {
+export class BioMSA {
     private sequences: TSequence[];
     private typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.PROTEIN;
 
