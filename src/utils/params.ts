@@ -123,8 +123,6 @@ export function setAlignmentParameters(p?: Partial<AlignParam>) {
     gapOP = m.gapOP;
 }
 
-const dotplotWindow = 15;
-
 export function setSeqType(type: SEQUENCE_TYPE) {
     typeSeq = type;
 }
