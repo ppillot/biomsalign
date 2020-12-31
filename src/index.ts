@@ -22,9 +22,9 @@ import { isLeafNode, makeTree, LeafNode, clustalWeights, InternalNode, NODE_TYPE
 enum TRACE_BACK {
     MATCH     = 0,
     DEL       = 1,
-    INS       = 1 << 2,
-    MATCH2INS = 1 << 3,
-    MATCH2DEL = 1 << 4
+    INS       = 1 << 1,
+    MATCH2DEL = 1 << 2,
+    MATCH2INS = 1 << 3
 };
 
 export class BioMSA {
@@ -83,6 +83,8 @@ export class BioMSA {
             } else if (this.sequences.length < 2) {
                 return reject('At least 2 sequences are required.');
             }
+
+            setSeqType(this.sequences[0].type);
 
             if (this.sequences.length == 2) {
                 let lResult = this._pairwiseAlignment(this.sequences[0], this.sequences[1], [0], [1]);
