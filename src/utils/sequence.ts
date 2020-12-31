@@ -22,7 +22,7 @@ export type TSequence = {
     type: SEQUENCE_TYPE;
 };
 
-const regAmAc = /[rndbeqyhilkmfpswyv]/gi;
+const regAmAc = /^[acgtrndeqhilkmfpswyv]$/gi;
 const regNotRNA = /[^acgu]/gi;
 const regNotDNA = /[^acgt]/gi;
 
@@ -31,9 +31,10 @@ const regNotDNA = /[^acgt]/gi;
  * @param {string} seq sequence to guess the type from
  */
 export function getSequenceType(seq: string) {
-    if (regAmAc.test(seq)) return SEQUENCE_TYPE.PROTEIN;
 
     if (!regNotRNA.test(seq) || !regNotDNA.test(seq)) return SEQUENCE_TYPE.NUCLEIC;
+
+    if (regAmAc.test(seq)) return SEQUENCE_TYPE.PROTEIN;
 
     throw new Error('Unrecognized sequence type: ' + seq);
 }
