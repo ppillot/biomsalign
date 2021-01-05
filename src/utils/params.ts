@@ -134,13 +134,3 @@ export function getAlignmentParameters() {
         gapOP,
     };
 }
-
-/**
- * set gapPenalties
- * @param {object} penaltiesObject contains gapOpen and gapExtent penalties
- *
- */
-export function setGapPenalties(penalties: Partial<{gapOpen: number, gapExtend: number}>) {
-    if (penalties.gapOpen !== undefined) gapOP = penalties.gapOpen;
-    if (penalties.gapExtend !== undefined) gapEP = penalties.gapExtend;
-}
