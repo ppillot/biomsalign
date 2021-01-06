@@ -332,7 +332,7 @@ export function progressiveAlignment (seq: TSequence[]) {
     if (treeIdentity === true) { // No possible improvement
         return msa;
     } else {
-        //on refait l'alignement progressif selon le nouvel arbre
+        //Repeat progressive alignment along this new tree
         var tabWeight2 = clustalWeights(tree2);
 
         //$log.debug(tabWeight);
@@ -406,7 +406,6 @@ function MSASeqAlignment(
     //in this alignment for performance reasons, profB is explored from i=0 to n
     //and seqA is explored from j=0 to m
 
-    //remplissage de la première ligne et de la première colonne de la matrice
     //INITIALISATION
     lMatchArr[0] = 0; //_utils.sumOfPairsScoreSP(sA[0], profB[0]);
     lDelArr[0] = -Infinity;
@@ -415,7 +414,6 @@ function MSASeqAlignment(
         lDelArr[j] = -Infinity;
     }
 
-    //remplissage des matrices
     //RECURSION
     //$log.debug('seqA: ', tSeqANames, ' penalités gapEP: ', gapEP, ' gapOP: ', gapOP);
     //M0 = Match[0] + profB[0].m_ScoreGapOpen; //est deux fois plus faible qu'une pénalité d'ouverture normale (début de séquence)
@@ -499,21 +497,6 @@ function MSASeqAlignment(
                 }
             }
             tbM[i * m + j] = tb;
-
-            /* if (j < 4 && i < 5) {
-                                    $log.debug('profB:'+ i, ' seqA:'+ j + '/'+sA[j - 1],
-                                        'gapOpenB: '+ gapOpenB,
-                                        'gapExtentB: '+ gapExtendB,
-                                        'gapOpenA: '+ gapOpenA,
-                                        'gapExtentA: '+ gapExtendA,
-                                        'deletej_1: '+ deletej_1,
-                                        'match: '+ match,
-                                        'lastInsert: '+ lastInsert,
-                                        'delete: '+ Delete[j],
-                                        'tb: '+ tb
-                                    );
-                                }
-                    /* */
         }
         lMatchArr[m] = prevMatch;
     }
@@ -529,20 +512,19 @@ function MSASeqAlignment(
     lAlignment.push( seqA.rawSeq , ...msaB);
     tSeqNames = [...tSeqANames, ...tSeqBNames];
 
-    var matriceActive = (tb & 12) >> 2,
+    var currentMatrix = (tb & 12) >> 2,
         value = 0;
     while ((i > 0) && (j > 0)) {
         indice = i * m + j;
-        //$log.debug('i:'+i,'j:'+j,'matrice active:'+value,'tb:'+tbM[indice]);
 
-        if (matriceActive === 0) {
+        if (currentMatrix === 0) {
             value = tbM[indice] >> 2;
             if (value === 0) {
                 i--;
                 j--;
             }
         } else {
-            if (matriceActive === 2) {
+            if (currentMatrix === 2) {
                 for (k = 1; k < lAlignment.length; k++) {
                     lAlignment[k] = lAlignment[k].substring(0, i) + '-' + lAlignment[k].substring(i);
                 }
@@ -555,9 +537,10 @@ function MSASeqAlignment(
                 i--;
             }
         }
-        matriceActive = value;
+        currentMatrix = value;
     }
-    //fin des profils par ajout direct de la fin de séquence
+
+    //Finalize sequences
     if (i === 0) {
         var p = '-'.repeat(j);
         for (k = 1; k < lAlignment.length; k++) {
@@ -592,7 +575,7 @@ function MSAMSAAlignment(
     var msaA, msaB, wB, wA, tSeqNames;
 
     if (nodeA.msa.length < nodeB.msa.length) {
-        //permutation des alignements : B reçoit le plus petit, réduit le nb d'itérations ensuite
+        //permutation: make B the smallest, to reduce iterations
         msaB = nodeA.msa;
         msaA = nodeB.msa;
         wB = nodeA.tabWeight;
@@ -633,7 +616,7 @@ function MSAMSAAlignment(
 
     var gapOP = _params.gapOP;
 
-    //conversion du MSA en profil
+    //convert to profile
     var profB = profileFromMSA(msaB, gapOP, wB);
     var profA = profileFromMSA(msaA, gapOP, wA);
 
