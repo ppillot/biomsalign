@@ -3,6 +3,7 @@
 
 <head>
     <title>biomsa</title>
+    <link rel="stylesheet" href="css/sequences.css" />
     <script src="../dist/biomsa.js"></script>
     <style>
         body,
@@ -50,7 +51,8 @@
             position: absolute;
         }
     </style>
-
+    <script src="jquery-1.9.1.min.js" type="text/javascript"></script>
+    <script src="seqview.js" type="text/javascript"></script>
 
 </head>
 
@@ -63,14 +65,46 @@
     <br />
 
     <textarea cols="80" rows="20" id="output"></textarea>
+
+    <div id="seq__ctnr" style="width: 95%; height: 300px;">
+
+    </div>
+
     <script>
+        var seqV = SeqView.getPannel({
+                conteneur: "seq__ctnr",
+                sequences: [{
+                    titre: "dummy",
+                    seq: "SEQVENCE"
+                }]
+            });
+            seqV.coloration.set('residu');
+
         function align() {
             var seqInput = document.getElementById('input').value;
             var seq = seqInput.split('\n');
 
+            let titles = [];
+            let sequences = [];
+
+            for (let i=0; i< seq.length; i++) {
+                if (seq[i][0] === '>') {
+                    titles.push(seq[i]);
+                    sequences.push('');
+                } else {
+                    sequences[sequences.length - 1] += seq[i];
+                }
+            }
+
             var msa = new biomsa.BioMSA();
-            var result = msa.align(seq).then(result => {
+            msa.align(sequences).then(result => {
                 document.getElementById('output').value = result.join('\n');
+                let acc = '';
+                for (let i = 0; i < result.length; i++) {
+                    acc += titles[i] + '\n' + result[i] + '\n';
+                }
+                seqV.supprimeTout().ajouteSequence(acc);
+
             });
         }
         document.getElementById('button').addEventListener('click', align);
