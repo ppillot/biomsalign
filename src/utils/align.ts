@@ -68,10 +68,10 @@ export function pairwiseAlignment (
         // it is common to have ragged alignments between distant sequences.
         // (This optimization comes from MAFFT and is applied in MUSCLE).
 
-        lMatchArr[0] = 0;
+        lMatchArr[0] = - GAP_OPEN / 2;
         lDelArr[0] = -Infinity;
         for (var j = 1; j <= lSeqBLen; j++) {
-            lMatchArr[j] = GAP_OPEN / 2;
+            lMatchArr[j] = - GAP_OPEN / 2;
             lDelArr[j] = -Infinity;
         }
 
@@ -79,7 +79,7 @@ export function pairwiseAlignment (
 
         for (var i = 1; i <= lSeqALen; i++) {
 
-            lPrevMatch = GAP_OPEN / 2;
+            lPrevMatch = - GAP_OPEN / 2;
             lLastInsert = -Infinity;
             matrix = params.scoringMatrix[sA[i - 1]];   // memoize.
 
