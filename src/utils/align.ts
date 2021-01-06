@@ -195,7 +195,7 @@ export function pairwiseAlignment (
         var lCurrentMatrix = (tb & 12) >> 2,
             val = 0;
 
-        while ((i >= 0) && (j >= 0)) {
+        while ((i > 0) && (j > 0)) {
             lIdx = i * lSeqBLen + j;
             tbIdx = lIdx >>> 1;
             isOdd = lIdx % 2;
@@ -204,24 +204,24 @@ export function pairwiseAlignment (
             if (lCurrentMatrix === 0) {
                 val = val >> 2;
                 if (val === 0) { //-->Match
-                    lSeqA.push(seqA.rawSeq[i]);
-                    lSeqB.push(seqB.rawSeq[j]);
                     i--;
                     j--;
+                    lSeqA.push(seqA.rawSeq[i]);
+                    lSeqB.push(seqB.rawSeq[j]);
                 }
                 // other cases --> run the loop once more to enter the
                 // following block.
             } else {
                 if (lCurrentMatrix === 2) { //-->Ins
+                    j--;
                     lSeqA.push('-');
                     lSeqB.push(seqB.rawSeq[j]);
                     val = val & 2;
-                    j--;
                 } else { //1 --> Del
+                    i--;
                     lSeqA.push(seqA.rawSeq[i]);
                     lSeqB.push('-');
                     val = val & 1;
-                    i--;
                 }
             }
             lCurrentMatrix = val;
