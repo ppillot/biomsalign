@@ -235,9 +235,10 @@ export function pairwiseAlignment (
         // Finish sequences edit by appending the remaining symbols
         if (i > 0) {
             lAlignment[1] = '-'.repeat(i) + lAlignment[1];
-        }
-        if (j > 0) {
+            lAlignment[0] = seqA.rawSeq.substring(0, i) + lAlignment[0];
+        } else if (j > 0) {
             lAlignment[0] = '-'.repeat(j) + lAlignment[0];
+            lAlignment[1] = seqB.rawSeq.substring(0, j) + lAlignment[1];
         }
 
         return {
