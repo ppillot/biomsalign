@@ -12,8 +12,9 @@ import {
     SEQUENCE_TYPE,
     TSequence,
 } from './utils/sequence';
-import { setSeqType } from './utils/params';
+import { setSeqType, DEBUG } from './utils/params';
 import { pairwiseAlignment, progressiveAlignment } from './utils/align';
+import Log from './utils/logger';
 
 export class BioMSA {
     private sequences: TSequence[];
@@ -61,6 +62,8 @@ export class BioMSA {
     }
 
     public align(seqArr?: string[]) {
+        if (DEBUG) Log.start();
+
         const msa = new Promise<any[]>((resolve, reject) => {
             if (seqArr !== undefined) {
                 if (Array.isArray(seqArr)) {
@@ -72,10 +75,19 @@ export class BioMSA {
                 return reject('At least 2 sequences are required.');
             }
 
+            if (DEBUG) Log.add('Prepared sequences');
+
             setSeqType(this.sequences[0].type);
+
+            if (DEBUG) Log.add('Get sequences type');
 
             if (this.sequences.length == 2) {
                 let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], [0], [1]);
+
+                if (DEBUG) Log.summary();
+
+
+
                 return resolve(lResult.alignment);
             } else {
                 return resolve(progressiveAlignment(this.sequences));

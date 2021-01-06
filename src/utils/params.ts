@@ -7,6 +7,8 @@
 
 import { SEQUENCE_TYPE } from './sequence';
 
+export const DEBUG = true;
+
 let typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.PROTEIN;
 
 let scoringMatrix: number[][] = [];
