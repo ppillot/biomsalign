@@ -7,11 +7,13 @@ export default {
       {
         file: pkg.main,
         format: 'umd',
-        name: 'biomsa'
+        name: 'biomsa',
+        sourcemap: true
       },
       {
         file: pkg.module,
         format: 'es',
+        sourcemap: true
       },
     ],
     external: [
