@@ -85,7 +85,7 @@ const BLASTZ = {
     ],
     gapOP: -400,
     gapEP: -60,
-    center: 30,
+    center: 120,
 };
 
 /**
