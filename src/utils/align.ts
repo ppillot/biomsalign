@@ -5,10 +5,11 @@
  * @copyright 2020
  */
 
-import { setAlignmentParameters, getAlignmentParameters } from "./params";
+import { setAlignmentParameters, getAlignmentParameters, DEBUG } from "./params";
 import { profileFromMSA } from "./profile";
 import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "./sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights, compareTrees, LeafNode } from "./tree";
+import Log from './logger';
 
 const enum TRACE_BACK {
     MATCH     = 0,
@@ -42,7 +43,9 @@ export function pairwiseAlignment (
                         // Used as a rotation variable.
         lLastInsert = 0,
 
-        tbM = new Uint8Array(lSeqALen * (lSeqBLen + 1)), // Trace back matrix
+        tbIdx = 0,
+        isOdd = 0,
+        tbM = new Uint8Array(Math.ceil(lSeqALen * (lSeqBLen + 1) / 2)), // Trace back matrix
         lAlignment: string[] = new Array(2),
         sA = seqA.encodedSeq,
         sB = seqB.encodedSeq,
@@ -156,7 +159,14 @@ export function pairwiseAlignment (
                 }
 
                 // Store trace-back bits
-                tbM[i * lSeqBLen + j] = tb;
+                tbIdx = i * lSeqBLen + j;
+                isOdd =  tbIdx % 2;
+                tbIdx = tbIdx >>> 1;
+                if (isOdd) {
+                    tbM[tbIdx] += tb
+                } else {
+                    tbM[tbIdx] += tb << 4;
+                }
 
             }
 
@@ -164,6 +174,8 @@ export function pairwiseAlignment (
             lMatchArr[lSeqBLen] = lPrevMatch;
 
         }
+
+        if (DEBUG) Log.add('End DP computation');
 
         var score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
 
@@ -174,8 +186,8 @@ export function pairwiseAlignment (
         i = lSeqALen;
         j = lSeqBLen;
         var lIdx = lSeqALen * lSeqBLen + lSeqBLen;
-        lAlignment[0] = seqA.rawSeq;
-        lAlignment[1] = seqB.rawSeq;
+        const lSeqA: string[] = [];
+        const lSeqB: string[] = [];
 
         // current matrix is either M (0), D (1) or I(2). Let's have a look
         // at the last value to see if the optimum is coming from DEL
@@ -183,11 +195,17 @@ export function pairwiseAlignment (
         var lCurrentMatrix = (tb & 12) >> 2,
             val = 0;
 
-        while ((i > 0) && (j > 0)) {
+        while ((i >= 0) && (j >= 0)) {
             lIdx = i * lSeqBLen + j;
+            tbIdx = lIdx >>> 1;
+            isOdd = lIdx % 2;
+            val = tbM[tbIdx];
+            val = isOdd ? val & 0b1111 : val >>> 4;
             if (lCurrentMatrix === 0) {
-                val = tbM[lIdx] >> 2;
+                val = val >> 2;
                 if (val === 0) { //-->Match
+                    lSeqA.push(seqA.rawSeq[i]);
+                    lSeqB.push(seqB.rawSeq[j]);
                     i--;
                     j--;
                 }
@@ -195,25 +213,32 @@ export function pairwiseAlignment (
                 // following block.
             } else {
                 if (lCurrentMatrix === 2) { //-->Ins
-                    lAlignment[0] = lAlignment[0].substring(0, i) + '-' + lAlignment[0].substring(i);
-                    val = tbM[lIdx] & 2;
+                    lSeqA.push('-');
+                    lSeqB.push(seqB.rawSeq[j]);
+                    val = val & 2;
                     j--;
                 } else { //1 --> Del
-                    lAlignment[1] = lAlignment[1].substring(0, j) + '-' + lAlignment[1].substring(j);
-                    val = tbM[lIdx] & 1;
+                    lSeqA.push(seqA.rawSeq[i]);
+                    lSeqB.push('-');
+                    val = val & 1;
                     i--;
                 }
             }
             lCurrentMatrix = val;
         }
 
+        lAlignment[0] = lSeqA.reverse().join('');
+        lAlignment[1] = lSeqB.reverse().join('');
+
+        if (DEBUG) Log.add('End traceback');
+
         // Finish sequences edit by appending the remaining symbols
-        if (j === 0) {
+        if (i > 0) {
             lAlignment[1] = '-'.repeat(i) + lAlignment[1];
-        } else { //i==0
+        }
+        if (j > 0) {
             lAlignment[0] = '-'.repeat(j) + lAlignment[0];
         }
-
 
         return {
             alignment: lAlignment,
