@@ -145,7 +145,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 
     const isProtein = tabSeq[0].type === SEQUENCE_TYPE.PROTEIN;
     const alphabetSize = isProtein ? 6 : 4;
-    const bitsetLength = Math.pow(6, 6);
+    const bitsetLength = Math.pow(alphabetSize, 6);
     const lKmer = tabSeq.map((seq) => {
         const bitset = new BitArray(bitsetLength);
         const seqAsNum = isProtein ? seq.compressedSeq : seq.encodedSeq;
