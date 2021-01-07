@@ -272,10 +272,15 @@ export function progressiveAlignment (seq: TSequence[]) {
         if (isLeafNode(nodeA)) { //A is a single sequence
             if (isLeafNode(nodeB)) { //B is a single sequence
                 result = pairwiseAlignment(nodeA.seq, nodeB.seq, nodeA.numSeq, nodeB.numSeq);
+
+                if (DEBUG) Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
+
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
                 result = MSASeqAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+
+                if (DEBUG) Log.add(`seq ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
             }
         } else if (!isLeafNode(nodeB)) { // A & B are both MSA
 
@@ -283,22 +288,28 @@ export function progressiveAlignment (seq: TSequence[]) {
             nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
 
             result = MSAMSAAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+
+            if (DEBUG) Log.add(`MSA ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
         }
         node.msa = result.alignment;
         node.numSeq = result.tSeqNames;
 
         return result.score;
     }
+    if (DEBUG) Log.add('Start Progressive Alignment');
 
     // Compute fast pair similarity (see k-mers binary Muscle)
 
     const lDistMatrixKMers = distanceMatrix(seq);
 
+    if (DEBUG) Log.add('K-mer distance matrix');
 
     // Compute tree from distance matrix
 
     const tree = makeTree(lDistMatrixKMers, seq);
     const root = tree[tree.length - 1] as InternalNode;
+
+    if (DEBUG) Log.add('Build Tree');
 
     // Compute weights (this is used to prevent close sequences to skew
     // the computation toward them, which would result in not disfavouring
@@ -306,10 +317,14 @@ export function progressiveAlignment (seq: TSequence[]) {
 
     const weights = clustalWeights(tree);
 
+    if (DEBUG) Log.add('Compute Weights - Start MSA');
+
     // First alignment following guide tree
 
     const score1 = treeAlign (root, weights);
     let msa = sortMSA(root.msa, root.numSeq); // sort sequences in the order they came in
+
+    if (DEBUG) Log.add('End MSA computation');
 
     // Refinement.
     // Now that we got a first alignment of all sequences, let see if some
@@ -321,9 +336,13 @@ export function progressiveAlignment (seq: TSequence[]) {
 
     const lDistMatrixKimura = distanceKimura(msa);
 
+    if (DEBUG) Log.add('Distance Kimura');
+
     // compute new tree
     var tree2 = makeTree(lDistMatrixKimura, seq);
     const root2 = tree2[tree2.length - 1] as InternalNode;
+
+    if (DEBUG) Log.add('Build tree 2');
 
     // compare trees.
     // Note: Impure function, it will modify tree2 if differences are found

@@ -5,8 +5,8 @@
  * @copyright 2020
  */
 
-import { getAlignmentParameters } from './params';
-import { aaToNum, nucToNum, SEQUENCE_TYPE } from './sequence';
+import { getAlignmentParameters, SEQUENCE_TYPE } from './params';
+import { aaToNum, nucToNum } from './sequence';
 
 export function sumOfPairsScorePP(profA: Profile, profB: Profile) {
     var score = 0,

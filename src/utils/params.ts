@@ -5,7 +5,10 @@
  * @copyright 2020
  */
 
-import { SEQUENCE_TYPE } from './sequence';
+export enum SEQUENCE_TYPE {
+    PROTEIN,
+    NUCLEIC,
+}
 
 export const DEBUG = true;
 

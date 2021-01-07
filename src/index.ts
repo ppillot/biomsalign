@@ -9,10 +9,9 @@ import {
     compressToDayhoff,
     encodeSeqToNum,
     getSequenceType,
-    SEQUENCE_TYPE,
     TSequence,
 } from './utils/sequence';
-import { setSeqType, DEBUG } from './utils/params';
+import { setSeqType, DEBUG, SEQUENCE_TYPE } from './utils/params';
 import { pairwiseAlignment, progressiveAlignment } from './utils/align';
 import Log from './utils/logger';
 
@@ -90,7 +89,11 @@ export class BioMSA {
 
                 return resolve(lResult.alignment);
             } else {
-                return resolve(progressiveAlignment(this.sequences));
+                let lResult = progressiveAlignment(this.sequences);
+
+                if (DEBUG) Log.summary();
+
+                return resolve(lResult);
             }
         });
 

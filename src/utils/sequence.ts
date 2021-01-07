@@ -5,11 +5,8 @@
  * @copyright 2020
  */
 import BitArray from './bitarray';
-
-export enum SEQUENCE_TYPE {
-    PROTEIN,
-    NUCLEIC,
-}
+import { DEBUG, SEQUENCE_TYPE } from './params';
+import Log from './logger';
 
 export type TSequence = {
     /** Sequence as a string */
@@ -179,6 +176,8 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         return bitset;
     });
 
+    if (DEBUG) Log.add('K-mer bitset computation');
+
     // compute distance matrix values
 
     const l = tabSeq.length;
@@ -198,6 +197,8 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         }
 
     }
+
+    if (DEBUG) Log.add('K-mer distance computation');
     return distTab;
 }
 
