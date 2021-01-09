@@ -1,4 +1,4 @@
-import { SEQUENCE_TYPE } from '../../../lib/utils/sequence';
+import { SEQUENCE_TYPE } from '../params';
 import { getSequenceType, encodeSeqToNum } from '../sequence';
 
 test('Detects DNA', () => {

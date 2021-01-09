@@ -19,9 +19,9 @@ export type TSequence = {
     type: SEQUENCE_TYPE;
 };
 
-const regAmAc = /^[acgtrndeqhilkmfpswyv]$/gi;
-const regNotRNA = /[^acgu]/gi;
-const regNotDNA = /[^acgt]/gi;
+const regAmAc = /^[acgtrndeqhilkmfpswyv]+$/i;
+const regNotRNA = /[^acgu]/i;
+const regNotDNA = /[^acgt]/i;
 
 /**
  * Guess the type of sequence from its raw content
@@ -29,9 +29,13 @@ const regNotDNA = /[^acgt]/gi;
  */
 export function getSequenceType(seq: string) {
 
-    if (!regNotRNA.test(seq) || !regNotDNA.test(seq)) return SEQUENCE_TYPE.NUCLEIC;
+    if (!regNotRNA.test(seq) || !regNotDNA.test(seq)) {
+        return SEQUENCE_TYPE.NUCLEIC
+    };
 
-    if (regAmAc.test(seq)) return SEQUENCE_TYPE.PROTEIN;
+    if (regAmAc.test(seq)) {
+        return SEQUENCE_TYPE.PROTEIN;
+    }
 
     throw new Error('Unrecognized sequence type: ' + seq);
 }
