@@ -53,11 +53,14 @@
 import { TSequence } from "./sequence";
 import { DEQueue } from './queue';
 
-export interface IMinimizer {
+export type TMinimizer = {
     kmer: number,
     kmerPos: number,
+    winPos: number,
     minimizedSubarray: number[]
-}
+};
+
+type TKmer = Pick<TMinimizer, 'kmer'|'kmerPos'>;
 
 /**
  *
@@ -72,8 +75,8 @@ export interface IMinimizer {
  */
 export function extractMinimizers (seq: TSequence, ksize: number, wsize: number) {
 
-    const lMinzMap: Map<number, IMinimizer[]> = new Map();
-    const lQueue = new DEQueue<IMinimizer>(wsize);
+    const lMinzMap: Map<number, TMinimizer[]> = new Map();
+    const lQueue = new DEQueue<TKmer>(wsize);
 
         // Create an array of 8-kmers from sequence
         // 8-kmers, with 2 bits per letter in a 4 letter alphabet require 16
@@ -96,12 +99,13 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
     const lStartStore = wsize - ksize;
 
+    let lPrevMinz: TMinimizer = {kmer: -1, kmerPos: -1, minimizedSubarray: [], winPos: -1};
+
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
-        let lMinz: IMinimizer = {
+        let lMinz: TKmer = {
             kmer: lKmer,
-            kmerPos: i,
-            minimizedSubarray: []
+            kmerPos: i
         }
 
             // Remove kmers with lower order than current kmer
@@ -116,32 +120,40 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
             // Remove kmers that are not in this window anymore
 
-        while (lQueue.getHead().kmerPos <= i + ksize - 1 - wsize) {
+        while (lQueue.getHead().kmerPos <= i - 1 - lStartStore) {
             lQueue.popHead();
         }
 
             // Store head kmer in minimizer hash
 
         let lHead = lQueue.getHead();
-        if (!lMinzMap.has(lHead.kmer)) {
-            lHead.minimizedSubarray = seq.encodedSeq.slice(i + ksize - wsize, i + ksize);
-            lMinzMap.set(lHead.kmer, [lHead]);
-        } else {    // kmer is already in hash
-            let lList = lMinzMap.get(lHead.kmer) as IMinimizer[];
-            let lLast = lList[lList.length - 1];
 
-                // Are we trying to push the same minimizer as last time?
-                // If not, push in hash.
-                // If yes, append new char to the minimized string value.
+            // Is it the same minimizer as last time?
+            // If yes, only extend the minimized subarray
 
-            if (lHead.kmerPos !== lLast.kmerPos) {
-                lHead.minimizedSubarray = seq.encodedSeq.slice(i + ksize - wsize, i);
-                lList.push(lHead);
-            } else {
-                // Update minimized string
-                lLast.minimizedSubarray.push(seq.encodedSeq[i + ksize - 1]);
+        if (lHead.kmerPos === lPrevMinz.kmerPos) {
+            lPrevMinz.minimizedSubarray.push(seq.encodedSeq[i + ksize - 1]);
+        } else {
+            lPrevMinz = {
+                kmer: lHead.kmer,
+                kmerPos: lHead.kmerPos,
+                winPos: i - lStartStore,
+                minimizedSubarray: seq.encodedSeq.slice(i - lStartStore, i + ksize)
             }
+
+                // Add the kmer to the hash, either as a new list or as a new
+                // item in a previous list (when the same kmer also minimizes
+                // another window)
+
+            if (!lMinzMap.has(lHead.kmer)) {
+                lMinzMap.set(lHead.kmer, [lPrevMinz]);
+            } else {
+                let lList = lMinzMap.get(lHead.kmer) as TMinimizer[];
+                lList.push(lPrevMinz);
+            }
+
         }
+
     }
 
     return lMinzMap;
