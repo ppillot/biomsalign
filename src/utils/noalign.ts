@@ -31,7 +31,7 @@
  *     numerous than the exhaustive K-mers enumeration, and they allow to
  *     compare larger segments in one iteration.
  * -2. Find common minimizers and collect the ones minimizing common substrings
- *     At the end of this process a collection of ranges each associated to a
+ *     At the end of this process a collection of ranges each associated with a
  *     diagonal has been established.
  * -3. Merge/filter ranges. Contiguous ranges on the same diagonal can be merged
  *     A range that is overlapped on its both sides by other ranges can be
@@ -52,6 +52,8 @@
 
 import { TSequence } from "./sequence";
 import { DEQueue } from './queue';
+import { DEBUG } from "./params";
+import Log from "./logger";
 import { hammingWeight } from "./bitarray";
 
 export type TMinimizer = {
@@ -62,6 +64,12 @@ export type TMinimizer = {
 };
 
 type TKmer = Pick<TMinimizer, 'kmer'|'kmerPos'>;
+
+type TRange = {
+    diagId: number,
+    begin: number,
+    end: number
+};
 
 /**
  *
@@ -74,9 +82,10 @@ type TKmer = Pick<TMinimizer, 'kmer'|'kmerPos'>;
  * Weighted minimizer sampling improves long read mapping, Bioinformatics,
  * Volume 36, Issue Supplement_1, July 2020, Pages i111–i118
  */
-export function extractMinimizers (seq: TSequence, ksize: number, wsize: number) {
+export function extractMinimizers (seq: TSequence, ksize: number, wsize: number): [Map<number, TMinimizer[]>, TMinimizer[], Uint16Array] {
 
     const lMinzMap: Map<number, TMinimizer[]> = new Map();
+    const lMinzArr: TMinimizer[] = [];
     const lQueue = new DEQueue<TKmer>(wsize);
 
         // Create an array of 8-kmers from sequence
@@ -152,6 +161,105 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
                 let lList = lMinzMap.get(lHead.kmer) as TMinimizer[];
                 lList.push(lPrevMinz);
             }
+
+            lMinzArr.push(lPrevMinz);
+        }
+
+    }
+
+    return [lMinzMap, lMinzArr, lKarr];
+}
+
+
+export function noalignPair(seqA: TSequence, seqB: TSequence) {
+
+    const KSIZE = 8;    // fits in 16bits
+    const WSIZE = 16;
+
+    const [lMinzA, lMinzAArr, lKmerA] = extractMinimizers(seqA, KSIZE, WSIZE);
+    const [lMinzB, lMinzBArr, lKmerB] = extractMinimizers(seqB, KSIZE, WSIZE);
+    if (DEBUG) Log.add('Extract Minimizers');
+
+    const lRangesColl = [];
+    const lDiagMap = new Map<number, TRange[]>();
+
+    // TODO: break the tie
+    for (let i = 0; i < lMinzAArr.length; i++) {
+        let kmer = lMinzAArr[i].kmer;
+
+        if (!lMinzB.has(kmer)) continue;
+        let listB = lMinzB.get(kmer) as TMinimizer[];
+
+            // Compare minimized string in A with those in listB to retain only
+            // the ones that share common minimized strings
+
+        let lMinzSubA = lMinzAArr[i].minimizedSubarray;
+
+        for (let j = 0; j < listB.length; j++) {
+            let lMinzSubB = listB[j].minimizedSubarray;
+            let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
+            let lSame = true;
+            // check for identical minimized string
+            for (let k = 0; k < lLen; k++) {
+                if (lMinzSubA[k] !== lMinzSubB[k]) {
+                    lSame = false;
+                    break;
+                }
+            }
+            if (!lSame) continue;
+
+            // common range to store
+            let lDiagId = lMinzAArr[i].winPos - listB[j].winPos;
+            let lRange = {
+                diagId: lDiagId,
+                begin : lMinzAArr[i].winPos,
+                end: lMinzAArr[i].winPos + lLen
+            };
+            lRangesColl.push(lRange);
+            let lDiagList = lDiagMap.get(lDiagId);
+            if (lDiagList === undefined) {
+                lDiagMap.set(lDiagId, [lRange])
+            } else {
+                lDiagList.push(lRange);
+            }
+        }
+    }
+    if (DEBUG) Log.add('Filter Minimizers');
+
+    let lDiagList: TRange[] = [];
+    // Merge consecutive or overlapping subarrays on the same diagonals
+    // Note: the extensions are made on range references
+    lDiagMap.forEach((diags) => {
+        let lCurrentSegment = diags[0];
+        lDiagList.push(lCurrentSegment);
+        diags.forEach(range => {
+            if (range.begin <= lCurrentSegment.end) {
+                lCurrentSegment.end = range.end;
+            } else {
+                lCurrentSegment = range;
+                lDiagList.push(lCurrentSegment);
+            }
+        });
+    });
+    if (DEBUG) Log.add('Merge Minimizers');
+
+    // Sort ranges in diag list from left to right and from top to bottom
+    lDiagList.sort((a, b) => {
+        let lDelta = a.begin - b.begin;
+        return (lDelta === 0) ? a.diagId - b.diagId: lDelta;
+    });
+    if (DEBUG) Log.add('Sort Minimizers');
+
+    // TODO.Find optimal order of diagonals
+    // console.log(lDiagList);
+    // Extend consecutive segments on same diagonal
+    let lCurrentSegment = lDiagList[0];
+    let lExtDiagList = [lCurrentSegment];
+    let lMissingSegments: TRange[] = [];
+    for (let i = 0; i < lDiagList.length; i++) {
+
+        // first case: this segment is on the same diagonal as the previous one
+        // Try to extend begin position towards previous segment.
 
     }
 

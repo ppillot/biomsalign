@@ -14,6 +14,7 @@ import {
 import { setSeqType, DEBUG, SEQUENCE_TYPE } from './utils/params';
 import { pairwiseAlignment, progressiveAlignment } from './utils/align';
 import Log from './utils/logger';
+import { noalignPair } from './utils/noalign';
 
 export class BioMSA {
     private sequences: TSequence[];
@@ -81,6 +82,11 @@ export class BioMSA {
             if (DEBUG) Log.add('Get sequences type');
 
             if (this.sequences.length == 2) {
+                if (Math.max(this.sequences[0].rawSeq.length, this.sequences[1].rawSeq.length) > 1600) {
+                    noalignPair(this.sequences[0], this.sequences[1]);
+                    if (DEBUG) Log.summary();
+                    return;
+                }
                 let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], [0], [1]);
 
                 if (DEBUG) Log.summary();
