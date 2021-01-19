@@ -52,6 +52,7 @@
 
 import { TSequence } from "./sequence";
 import { DEQueue } from './queue';
+import { hammingWeight } from "./bitarray";
 
 export type TMinimizer = {
     kmer: number,
@@ -152,9 +153,23 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
                 lList.push(lPrevMinz);
             }
 
-        }
-
     }
 
-    return lMinzMap;
+}
+
+/**
+ * Returns the number of different letters in DNA alphabet between 2 kmers
+ * encoded as numbers, using bitwise operations
+ *
+ * @param {number} a
+ * @param {number} b
+ */
+export function dnaHammingDistance (a: number, b: number) {
+
+    // DNA alphabet encodes 4 symbols using 2 bits. In the following, we'll
+    // count the pairs of bits that are different between a and b.
+    let c = a ^ b;  // set bit for pair of bits that are different
+    c = (c & 0x55555555) | ((c >> 1) & 0x55555555); // intersect with 010101... to retain only the lowest bit in each pair
+    return hammingWeight(c);
+
 }
