@@ -10,7 +10,7 @@
  * @param  {Integer} v - a 32-bit unsigned integer
  * @return {Integer} the Hamming weight
  */
-function hammingWeight(v: number) {
+export function hammingWeight(v: number) {
     // works with signed or unsigned shifts
     v -= (v >>> 1) & 0x55555555;
     v = (v & 0x33333333) + ((v >>> 2) & 0x33333333);
