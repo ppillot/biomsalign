@@ -83,9 +83,9 @@ export class BioMSA {
 
             if (this.sequences.length == 2) {
                 if (Math.max(this.sequences[0].rawSeq.length, this.sequences[1].rawSeq.length) > 1600) {
-                    noalignPair(this.sequences[0], this.sequences[1]);
+                    let lAlignment = noalignPair(this.sequences[0], this.sequences[1]);
                     if (DEBUG) Log.summary();
-                    return;
+                    return resolve(lAlignment);
                 }
                 let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], [0], [1]);
 
