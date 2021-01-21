@@ -175,7 +175,7 @@ export function pairwiseAlignment (
 
         }
 
-        if (DEBUG) Log.add('End DP computation');
+        // if (DEBUG) Log.add('End DP computation');
 
         var score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
 
@@ -230,7 +230,7 @@ export function pairwiseAlignment (
         lAlignment[0] = lSeqA.reverse().join('');
         lAlignment[1] = lSeqB.reverse().join('');
 
-        if (DEBUG) Log.add('End traceback');
+        // if (DEBUG) Log.add('End traceback');
 
         // Finish sequences edit by appending the remaining symbols
         if (i > 0) {
