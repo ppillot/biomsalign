@@ -25,7 +25,6 @@ export function pairwiseAlignment (
     idA: number[],
     idB: number[]
 ) {
-    setAlignmentParameters();
     const params = getAlignmentParameters();
 
     var lSeqALen = seqA.rawSeq.length,

@@ -11,7 +11,7 @@ import {
     getSequenceType,
     TSequence,
 } from './utils/sequence';
-import { setSeqType, DEBUG, SEQUENCE_TYPE } from './utils/params';
+import { setSeqType, DEBUG, SEQUENCE_TYPE, setAlignmentParameters } from './utils/params';
 import { pairwiseAlignment, progressiveAlignment } from './utils/align';
 import Log from './utils/logger';
 import { noalignPair } from './utils/noalign';
@@ -78,6 +78,7 @@ export class BioMSA {
             if (DEBUG) Log.add('Prepared sequences');
 
             setSeqType(this.sequences[0].type);
+            setAlignmentParameters();
 
             if (DEBUG) Log.add('Get sequences type');
 
