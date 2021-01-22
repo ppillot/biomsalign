@@ -61,7 +61,7 @@ export type TMinimizer = {
     kmer: number,
     kmerPos: number,
     winPos: number,
-    minimizedSubarray: number[]
+    winPosEnd: number
 };
 
 type TKmer = Pick<TMinimizer, 'kmer'|'kmerPos'>;
@@ -110,7 +110,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
     const lStartStore = wsize - ksize;
 
-    let lPrevMinz: TMinimizer = {kmer: -1, kmerPos: -1, minimizedSubarray: [], winPos: -1};
+    let lPrevMinz: TMinimizer = {kmer: -1, kmerPos: -1, winPosEnd: -1, winPos: -1};
 
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
@@ -143,13 +143,13 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             // If yes, only extend the minimized subarray
 
         if (lHead.kmerPos === lPrevMinz.kmerPos) {
-            lPrevMinz.minimizedSubarray.push(seq.encodedSeq[i + ksize - 1]);
+            lPrevMinz.winPosEnd = i + ksize;
         } else {
             lPrevMinz = {
                 kmer: lHead.kmer,
                 kmerPos: lHead.kmerPos,
                 winPos: i - lStartStore,
-                minimizedSubarray: seq.encodedSeq.slice(i - lStartStore, i + ksize)
+                winPosEnd: i + ksize
             }
 
                 // Add the kmer to the hash, either as a new list or as a new
@@ -200,20 +200,14 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
             // Compare minimized string in A with those in listB to retain only
             // the ones that share common minimized strings
 
-        let lMinzSubA = lMinzAArr[i].minimizedSubarray;
+        let lMinzSubA = seqA.rawSeq.substring(lMinzAArr[i].winPos, lMinzAArr[i].winPosEnd);
 
         for (let j = 0; j < listB.length; j++) {
-            let lMinzSubB = listB[j].minimizedSubarray;
+            let lMinzSubB =  seqB.rawSeq.substring(listB[j].winPos, listB[j].winPosEnd);
             let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
-            let lSame = true;
-            // check for identical minimized string
-            for (let k = 0; k < lLen; k++) {
-                if (lMinzSubA[k] !== lMinzSubB[k]) {
-                    lSame = false;
-                    break;
-                }
-            }
-            if (!lSame) continue;
+            if (lLen == lMinzSubA.length) {
+                if (lMinzSubB.indexOf(lMinzSubA) !== 0) continue;
+            } else if (lMinzSubA.indexOf(lMinzSubB) !== 0) continue;
 
             // common range to store
             let lDiagId = lMinzAArr[i].winPos - listB[j].winPos;

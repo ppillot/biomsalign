@@ -13,7 +13,7 @@ test('Extracts Minimizers from sequence', () => {
 
     expect(lMinzMap.has(lMin));
     const lMinz0 = (lMinzMap.get(lMin) as TMinimizer[])[0];
-    expect(lMinz0.minimizedSubarray).toEqual([3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1])
+    expect(lSeq.encodedSeq.slice(lMinz0.winPos, lMinz0.winPosEnd)).toEqual([3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1])
     expect(lMinz0.winPos).toBe(0);
 });
 
