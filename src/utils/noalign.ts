@@ -57,20 +57,19 @@ import Log from "./logger";
 import { hammingWeight } from "./bitarray";
 import { pairwiseAlignment } from "./align";
 
-export type TMinimizer = {
-    kmer: number,
-    kmerPos: number,
-    winPos: number,
-    winPosEnd: number
-};
-
-type TKmer = Pick<TMinimizer, 'kmer'|'kmerPos'>;
-
 type TRange = {
     diagId: number,
     begin: number,
     end: number
 };
+
+type TMinzStore = {
+    kmer: Uint16Array,
+    kmerPos: Uint16Array,
+    winPos: Uint16Array,
+    winPosEnd: Uint16Array,
+    count: number
+}
 
 /**
  *
@@ -83,10 +82,9 @@ type TRange = {
  * Weighted minimizer sampling improves long read mapping, Bioinformatics,
  * Volume 36, Issue Supplement_1, July 2020, Pages i111–i118
  */
-export function extractMinimizers (seq: TSequence, ksize: number, wsize: number): [Map<number, TMinimizer[]>, TMinimizer[], Uint16Array] {
+export function extractMinimizers (seq: TSequence, ksize: number, wsize: number): [Map<number, number[]>, TMinzStore, Uint16Array] {
 
-    const lMinzMap: Map<number, TMinimizer[]> = new Map();
-    const lMinzArr: TMinimizer[] = [];
+    const lMinzMap: Map<number, number[]> = new Map();
     const lQueue = new DEQueue<number>(wsize);
     const lKSIZE = ksize | 0;
 
@@ -111,7 +109,18 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
     const lStartStore = wsize - lKSIZE;
 
-    let lPrevMinz: TMinimizer = {kmer: -1, kmerPos: -1, winPosEnd: -1, winPos: -1};
+        // random kmer density is 2/(wsize + 1). This doubles the expected size
+        // for the store.
+
+    const lLength = (seq.rawSeq.length * (2 / (wsize + 1)) * 2)|0 ;
+    const lStoreMinz: TMinzStore = {
+        kmer     : new Uint16Array(lLength),
+        kmerPos  : new Uint16Array(lLength),
+        winPos   : new Uint16Array(lLength),
+        winPosEnd: new Uint16Array(lLength),
+        count: 0
+    };
+    let lCurrMinzPos = NaN;
 
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
@@ -139,34 +148,36 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             // Is it the same minimizer as last time?
             // If yes, only extend the minimized subarray
 
-        if (lHead === lPrevMinz.kmerPos) {
-            lPrevMinz.winPosEnd = i + lKSIZE;
+        if (lHead === lCurrMinzPos) {
+            lStoreMinz.winPosEnd[lStoreMinz.count - 1] = i + lKSIZE;
+            //lPrevMinz.winPosEnd = i + lKSIZE;
         } else {
-            let lHeadKmer = lKarr[lHead];
-            lPrevMinz = {
-                kmer: lHeadKmer,
-                kmerPos: lHead,
-                winPos: i - lStartStore,
-                winPosEnd: i + lKSIZE
-            }
+            const lHeadKmer = lKarr[lHead];
+            const lIdx = lStoreMinz.count;
+            lStoreMinz.count ++;
+
+            lStoreMinz.kmer     [lIdx] = lHeadKmer;
+            lStoreMinz.kmerPos  [lIdx] = lHead;
+            lStoreMinz.winPos   [lIdx] = i - lStartStore;
+            lStoreMinz.winPosEnd[lIdx] = i + lKSIZE;
+            lCurrMinzPos = lHead;
 
                 // Add the kmer to the hash, either as a new list or as a new
                 // item in a previous list (when the same kmer also minimizes
                 // another window)
 
             if (!lMinzMap.has(lHeadKmer)) {
-                lMinzMap.set(lHeadKmer, [lPrevMinz]);
+                lMinzMap.set(lHeadKmer, [lIdx]);
             } else {
-                let lList = lMinzMap.get(lHeadKmer) as TMinimizer[];
-                lList.push(lPrevMinz);
+                let lList = lMinzMap.get(lHeadKmer) as number[];
+                lList.push(lIdx);
             }
 
-            lMinzArr.push(lPrevMinz);
         }
 
     }
 
-    return [lMinzMap, lMinzArr, lKarr];
+    return [lMinzMap, lStoreMinz, lKarr];
 }
 
 
@@ -181,45 +192,47 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
     const [lMinzB, lMinzBArr, lKmerB] = extractMinimizers(seqB, KSIZE, WSIZE);
     if (DEBUG) {
         Log.add('Extract Minimizers');
-        lDebugStats['Nb Minimizers'] = {a: lMinzAArr.length, b: lMinzBArr.length};
-        lDebugStats['Dupl. Minimizers'] = {a: lMinzAArr.length - lMinzA.size, b: lMinzBArr.length - lMinzB.size};
+        lDebugStats['Nb Minimizers'] = {a: lMinzAArr.count, b: lMinzBArr.count};
+        lDebugStats['Dupl. Minimizers'] = {a: lMinzAArr.count - lMinzA.size, b: lMinzBArr.count - lMinzB.size};
     }
 
     const lRangesColl = [];
     const lDiagMap = new Map<number, TRange[]>();
 
     // TODO: break the tie
-    for (let i = 0; i < lMinzAArr.length; i++) {
-        let kmer = lMinzAArr[i].kmer;
+    for (let i = 0; i < lMinzAArr.count; i++) {
+        let kmer = lMinzAArr.kmer[i];
 
         if (!lMinzB.has(kmer)) continue;
-        let listB = lMinzB.get(kmer) as TMinimizer[];
+        let listB = lMinzB.get(kmer) as number[];
 
             // Compare minimized string in A with those in listB to retain only
             // the ones that share common minimized strings
 
-        let lMinzSubA = seqA.rawSeq.substring(lMinzAArr[i].winPos, lMinzAArr[i].winPosEnd);
+        let lMinzSubA = seqA.rawSeq.substring(lMinzAArr.winPos[i], lMinzAArr.winPosEnd[i]);
 
         for (let j = 0; j < listB.length; j++) {
-            let lMinzSubB =  seqB.rawSeq.substring(listB[j].winPos, listB[j].winPosEnd);
+            let lBidx = listB[j];
+            let lMinzSubB =  seqB.rawSeq.substring(lMinzBArr.winPos[lBidx], lMinzBArr.winPosEnd[lBidx]);
             let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
             if (lLen == lMinzSubA.length) {
                 if (lMinzSubB.indexOf(lMinzSubA) !== 0) continue;
             } else if (lMinzSubA.indexOf(lMinzSubB) !== 0) continue;
 
             // common range to store
-            let lDiagId = lMinzAArr[i].winPos - listB[j].winPos;
+            let lDiagId = lMinzAArr.winPos[i] - lMinzBArr.winPos[lBidx];
             let lRange = {
                 diagId: lDiagId,
-                begin : lMinzAArr[i].winPos,
-                end: lMinzAArr[i].winPos + lLen
+                begin : lMinzAArr.winPos[i],
+                end: lMinzAArr.winPos[i] + lLen
             };
             lRangesColl.push(lRange);
-            let lDiagList = lDiagMap.get(lDiagId);
-            if (lDiagList === undefined) {
+
+            if (!lDiagMap.has(lDiagId)) {
                 lDiagMap.set(lDiagId, [lRange])
             } else {
-                lDiagList.push(lRange);
+                let lDiagList = lDiagMap.get(lDiagId);
+                lDiagList!.push(lRange);
             }
         }
     }
