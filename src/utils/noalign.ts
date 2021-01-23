@@ -87,51 +87,48 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
     const lMinzMap: Map<number, TMinimizer[]> = new Map();
     const lMinzArr: TMinimizer[] = [];
-    const lQueue = new DEQueue<TKmer>(wsize);
+    const lQueue = new DEQueue<number>(wsize);
+    const lKSIZE = ksize | 0;
 
         // Create an array of 8-kmers from sequence
         // 8-kmers, with 2 bits per letter in a 4 letter alphabet require 16
         // bits. Let's compute it using a sliding window (in O(n) )
 
-    const lKarr = new Uint16Array(seq.encodedSeq.length - ksize + 1);
-    let kval = 0;
+    const lKarr = new Uint16Array(seq.encodedSeq.length - lKSIZE + 1);
+    let kval = 0|0;
     let lIdx = 0;
-    for (let i = 0; i < ksize; i++) {
-        kval |= seq.encodedSeq[ksize - i - 1] << (i * 2);
+    for (let i = 0; i < lKSIZE; i++) {
+        kval |= seq.encodedSeq[lKSIZE - i - 1] << (i * 2);
     }
     lKarr[lIdx++] = kval;
 
-    for (let i = ksize, imax = seq.encodedSeq.length; i < imax; i++) {
+    for (let i = lKSIZE, imax = seq.encodedSeq.length; i < imax; i++) {
         kval = (kval << 2) + seq.encodedSeq[i];
         lKarr[lIdx++] = kval;
     }
 
         // Compute minimizers
 
-    const lStartStore = wsize - ksize;
+    const lStartStore = wsize - lKSIZE;
 
     let lPrevMinz: TMinimizer = {kmer: -1, kmerPos: -1, winPosEnd: -1, winPos: -1};
 
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
-        let lMinz: TKmer = {
-            kmer: lKmer,
-            kmerPos: i
-        }
 
             // Remove kmers with lower order than current kmer
             // Note: for sake of symplicity, order is just kmer value.
 
-        while (!lQueue.isEmpty && lQueue.getTail().kmer > lKmer) {
+        while (!lQueue.isEmpty && lKarr[lQueue.getTail()] > lKmer) {
             lQueue.popTail();
         }
-        lQueue.pushTail(lMinz);
+        lQueue.pushTail(i);
 
         if (i<lStartStore) continue;
 
             // Remove kmers that are not in this window anymore
 
-        while (lQueue.getHead().kmerPos <= i - 1 - lStartStore) {
+        while (lQueue.getHead() <= i - 1 - lStartStore) {
             lQueue.popHead();
         }
 
@@ -142,24 +139,25 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             // Is it the same minimizer as last time?
             // If yes, only extend the minimized subarray
 
-        if (lHead.kmerPos === lPrevMinz.kmerPos) {
-            lPrevMinz.winPosEnd = i + ksize;
+        if (lHead === lPrevMinz.kmerPos) {
+            lPrevMinz.winPosEnd = i + lKSIZE;
         } else {
+            let lHeadKmer = lKarr[lHead];
             lPrevMinz = {
-                kmer: lHead.kmer,
-                kmerPos: lHead.kmerPos,
+                kmer: lHeadKmer,
+                kmerPos: lHead,
                 winPos: i - lStartStore,
-                winPosEnd: i + ksize
+                winPosEnd: i + lKSIZE
             }
 
                 // Add the kmer to the hash, either as a new list or as a new
                 // item in a previous list (when the same kmer also minimizes
                 // another window)
 
-            if (!lMinzMap.has(lHead.kmer)) {
-                lMinzMap.set(lHead.kmer, [lPrevMinz]);
+            if (!lMinzMap.has(lHeadKmer)) {
+                lMinzMap.set(lHeadKmer, [lPrevMinz]);
             } else {
-                let lList = lMinzMap.get(lHead.kmer) as TMinimizer[];
+                let lList = lMinzMap.get(lHeadKmer) as TMinimizer[];
                 lList.push(lPrevMinz);
             }
 
@@ -406,12 +404,12 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
             let lResult = pairwiseAlignment({
                 rawSeq: seqA.rawSeq.substring(lMis.begin, lMis.end),
                 type: seqA.type,
-                compressedSeq: [],
+                compressedSeq: new Uint8Array(0),
                 encodedSeq: seqA.encodedSeq.slice(lMis.begin, lMis.end)
             }, {
                 rawSeq: seqB.rawSeq.substring(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId),
                 type: seqB.type,
-                compressedSeq: [],
+                compressedSeq: new Uint8Array(0),
                 encodedSeq: seqB.encodedSeq.slice(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
             },[0],[1]);
 

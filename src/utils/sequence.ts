@@ -12,9 +12,9 @@ export type TSequence = {
     /** Sequence as a string */
     rawSeq: string;
     /** Sequence encoded as a number array */
-    encodedSeq: number[];
+    encodedSeq: Uint8Array;
     /** Sequence encoded as a number array in a compressed alphabet (Dayhoff) */
-    compressedSeq: number[];
+    compressedSeq: Uint8Array;
     /** Sequence type enum (PROTEIN or NUCLEIC) */
     type: SEQUENCE_TYPE;
 };
@@ -86,11 +86,11 @@ nucToNum[85] = 3; // U, uracile aligns with thymine
  * @returns {number[]}
  */
 export function encodeSeqToNum(seq: string, type: SEQUENCE_TYPE) {
-    const encodedTab: number[] = [];
+    const encodedTab = new Uint8Array(seq.length);
     const convTable = type === SEQUENCE_TYPE.PROTEIN ? aaToNum : nucToNum;
 
     for (let i = 0, imax = seq.length; i < imax; i++) {
-        encodedTab.push(convTable[seq.charCodeAt(i)]);
+        encodedTab[i] = convTable[seq.charCodeAt(i)];
     }
 
     return encodedTab;
@@ -105,7 +105,7 @@ export function encodeSeqToNum(seq: string, type: SEQUENCE_TYPE) {
  * @param {number[]} encodedSeq Sequence encoded as a number array
  * @returns {number[]} compressed sequence encoded as a number array
  */
-export function compressToDayhoff(encodedSeq: number[]) {
+export function compressToDayhoff(encodedSeq: Uint8Array) {
     const compressedSeq = encodedSeq.map((val) => toDayhoff[val]);
     return compressedSeq;
 }
@@ -143,7 +143,6 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     // for sequences with low complexity).
 
     // Make the 6/4-kmer bitsets
-
     const isProtein = tabSeq[0].type === SEQUENCE_TYPE.PROTEIN;
     const alphabetSize = isProtein ? 6 : 4;
     const bitsetLength = Math.pow(alphabetSize, 6);
@@ -153,9 +152,10 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 
         // Value for a tuple is 1st letter + 6*2nd letter + 36*3rd letter...
 
-        let tupleval = seqAsNum.slice(0, 5).reduce((acc, val, i) => {
-            return acc + val * Math.pow(alphabetSize, i);
-        }, 0);
+        let tupleval = 0;
+        for (let i = 0; i <= 5; i++ ) {
+            tupleval += seqAsNum[i] * Math.pow(alphabetSize, i);
+        }
         bitset.set(tupleval);
 
         // Compute next tuple from previous one
@@ -163,7 +163,6 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         const topLetterFactor = Math.pow(alphabetSize, 5);
         for (let i = 6, imax = seqAsNum.length; i < imax; i++) {
             // remove lowest letter from tuple
-
             tupleval -= seqAsNum[i - 6];
 
             // shift value by 6
@@ -171,7 +170,6 @@ export function distanceMatrix(tabSeq: TSequence[]) {
             tupleval /= 6;
 
             // add highest letter to tuple
-
             tupleval += seqAsNum[i] * topLetterFactor;
 
             bitset.set(tupleval);
