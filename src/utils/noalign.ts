@@ -119,7 +119,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             // Remove kmers with lower order than current kmer
             // Note: for sake of symplicity, order is just kmer value.
 
-        while (!lQueue.isEmpty && lKarr[lQueue.getTail()] > lKmer) {
+        while (!lQueue.isEmpty && lKarr[lQueue.getTail()] >= lKmer) {
             lQueue.popTail();
         }
         lQueue.pushTail(i);
