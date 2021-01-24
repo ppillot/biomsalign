@@ -349,7 +349,7 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 n ++;
             }
 
-            lPrevSegment.end = m;
+            lPrevSegment.end = m - 1;   // last before discrepancy
 
             // Compare in backward direction until sequences differ
 
@@ -362,7 +362,7 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 n --;
             }
 
-            lCurrentSegment.begin = m;
+            lCurrentSegment.begin = m + 1;  // last before discrepancy
 
             lMissingSegments.push({
                 endDiagId: lCurrentSegment.diagId,
