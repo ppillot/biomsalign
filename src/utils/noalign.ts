@@ -293,17 +293,19 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
             // Compare kmers in forward direction until score drops
             let m = lPrevSegment.end;   // end position on seq A
             let n = m - lCurrentSegment.diagId;
+            let lWinScore = 0
 
             while (m < lCurrentSegment.begin
-                && dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD
+                && lWinScore < 2
             ) {
                 m += KSIZE;
                 n += KSIZE;
+                lWinScore = dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
             }
 
             // To avoid boundaries conditions, remove the tip of the extension
             if (m > lPrevSegment.end) {
-                lPrevSegment.end = m - EXTENSION_THRESHOLD;
+                lPrevSegment.end = m - EXTENSION_THRESHOLD - KSIZE;
             }
 
             // Compare in backward direction until score drops or merge has been
@@ -311,16 +313,18 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
 
             m = lCurrentSegment.begin - KSIZE;
             n = m - lCurrentSegment.diagId;
+            lWinScore = 0;
 // WIP Make stats on full window, not just 1 Kmer
             while (m > lPrevSegment.end
-                && dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD
+                && lWinScore < 2
             ) {
                 m -= KSIZE;
                 n -= KSIZE;
+                lWinScore = dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
             }
 
-            if (m < lCurrentSegment.begin - KSIZE) {
-                lCurrentSegment.begin = m + KSIZE + EXTENSION_THRESHOLD;
+            if (m < lCurrentSegment.begin - 2 * KSIZE) {
+                lCurrentSegment.begin = m + 3 * KSIZE + EXTENSION_THRESHOLD;
             }
 
             // merge?
