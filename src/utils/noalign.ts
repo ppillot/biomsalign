@@ -354,11 +354,13 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 n ++;
             }
 
-            lPrevSegment.end = m - 1;   // last before discrepancy
+            lPrevSegment.end = m;   // last before discrepancy. This position is
+                                    // exclusive in the prevSegment, and inclusive
+                                    // in the missing segment if any.
 
             // Compare in backward direction until sequences differ
 
-            m = lCurrentSegment.begin - 1;
+            m = lCurrentSegment.begin;
             n = m - lCurrentSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
