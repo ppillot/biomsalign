@@ -332,7 +332,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                     beginDiagId: lPrevSegment.diagId,
                     endDiagId: lCurrentSegment.diagId,
                     begin: lPrevSegment.end,
-                    end: lCurrentSegment.begin
+                    end: lCurrentSegment.begin,
+                    size: lCurrentSegment.begin-lPrevSegment.end
                 });
                 lExtDiagList.push(lCurrentSegment);
                 lPrevSegment = lCurrentSegment;
@@ -368,7 +369,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 endDiagId: lCurrentSegment.diagId,
                 beginDiagId: lPrevSegment.diagId,
                 begin: lPrevSegment.end,
-                end: lCurrentSegment.begin
+                end: lCurrentSegment.begin,
+                size: lCurrentSegment.begin-lPrevSegment.end
             });
             lExtDiagList.push(lCurrentSegment);
             lPrevSegment = lCurrentSegment;
@@ -386,8 +388,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
         lDebugStats['Extended Diagonals'] = {all: lExtDiagList.length};
         console.table(lDebugStats);
 
-        // console.log(lExtDiagList);
-        // console.log(lMissingSegments);
+        //console.log(lExtDiagList);
+        //console.table(lMissingSegments);
     }
 
     // Make the alignment from the diagonals and fill the gaps
