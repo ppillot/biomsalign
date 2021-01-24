@@ -44,7 +44,7 @@ export function pairwiseAlignment (
 
         tbIdx = 0,
         isOdd = 0,
-        tbM = new Uint8Array(Math.ceil(lSeqALen * (lSeqBLen + 1) / 2)), // Trace back matrix
+        tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)), // Trace back matrix
         lAlignment: string[] = new Array(2),
         sA = seqA.encodedSeq,
         sB = seqB.encodedSeq,
