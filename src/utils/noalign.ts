@@ -439,6 +439,32 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
         }
 
     }
+
+        // Append tail if any
+        // At this stage both aligned sequences have the same length.
+        // For now, just append the missing part. Ultimately, assess, depending
+        // on the tail length if a SW alignmnent is deemed necessary.
+
+    if (lDiag.end < seqA.rawSeq.length
+        || lDiag.end - lDiag.diagId < seqB.rawSeq.length
+    ) {
+            // Note: in JS substring() overflow returns an empty string.
+
+        let lPieceA = seqA.rawSeq.substring(lDiag.end);
+        let lPieceB = seqB.rawSeq.substring(lDiag.end - lDiag.diagId);
+        lSeqA += lPieceA;
+        lSeqB += lPieceB;
+
+        if (lPieceA.length !== lPieceB.length) {
+            const lTail = '-'.repeat(Math.abs(lPieceB.length - lPieceB.length));
+            if (lPieceB.length < lPieceA.length) {
+                lSeqB += lTail;
+            } else {
+                lSeqA += lTail;
+            }
+        }
+    }
+
     if (DEBUG) {
         Log.add('Fill between diagonals');
     }
