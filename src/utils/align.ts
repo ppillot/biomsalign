@@ -5,36 +5,48 @@
  * @copyright 2020
  */
 
-import { setAlignmentParameters, getAlignmentParameters, DEBUG } from "./params";
+import { getAlignmentParameters, DEBUG } from "./params";
 import { profileFromMSA } from "./profile";
 import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "./sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights, compareTrees, LeafNode } from "./tree";
 import Log from './logger';
 
+/**
+ * Trace back matrix transitions values
+ * Bits are used to create a bit mask that encodes every transition between the
+ * 3 classical matrices
+ * @enum {number}
+ */
 const enum TRACE_BACK {
-    MATCH     = 0,
-    DEL       = 1,
-    INS       = 1 << 1,
-    MATCH2DEL = 1 << 2,
-    MATCH2INS = 1 << 3
+    MATCH     = 0,          // Match extension
+    DEL       = 1,          // Delete extension
+    INS       = 1 << 1,     // Insert extension
+    MATCH2DEL = 1 << 2,     // Delete opening
+    MATCH2INS = 1 << 3      // Insert opening
 };
+
+export const enum ALIGNOPT {
+    DISABLE_FAVOR_START_GAP = 1,
+    DISABLE_FAVOR_END_GAP   = 1 << 1
+}
 
 export function pairwiseAlignment (
     seqA: TSequence,
     seqB: TSequence,
     idA: number[],
-    idB: number[]
+    idB: number[],
+    opt = 0
 ) {
     const params = getAlignmentParameters();
 
-    var lSeqALen = seqA.rawSeq.length,
-        lSeqBLen = seqB.rawSeq.length,
-        lMatch = 0,      // match score
-            //
+    const lSeqALen = seqA.rawSeq.length;
+    const lSeqBLen = seqB.rawSeq.length;
+    let lMatch = 0,      // match score
+
             // Textbook approach considers 3 n x m matrices for holding
             // the match / delete / insert values computed. These could be
-            // reduces to only 2 vectors and 2 scalars
-            //
+            // reduced to only 2 vectors and 2 scalars
+
         lMatchArr = [],     // Match column
         lDelArr = [],       // Delete column
         lPrevMatch = 0, // Scalar value containing match value computed at
@@ -43,22 +55,28 @@ export function pairwiseAlignment (
         lLastInsert = 0,
 
         tbIdx = 0,
-        isOdd = 0,
-        tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)), // Trace back matrix
-        lAlignment: string[] = new Array(2),
-        sA = seqA.encodedSeq,
-        sB = seqB.encodedSeq,
+        isOdd = 0;
 
-        gapOpenA = 0,
+    // Traceback matrix size: for convenience, an extra column has been added
+    // but will remain half empty (TODO: fix iteration boundaries).
+    // The traceback values are stored in a typed array of (n+1) * m / 2 bytes.
+    // Using bit values for M, I and D transitions, shifted depending on the matrix
+    // they encode, it's possible to encode all states using 4 bits.
+    // As a cell in the array contains 8 bits, each ultimately contains the
+    // results for 2 successive values in the DP matrix.
+
+    const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)); // Trace back matrix
+    const sA = seqA.encodedSeq;
+    const sB = seqB.encodedSeq;
+
+    let gapOpenA = 0,
         gapOpenB = 0,
         gapExtentA = 0,
         gapExtentB = 0,
         tb = 0,         // trace back value. It's a bitmask of match + del + ins
 
-        matrix = [],    // memoization of the scoring matrix row for the
+        matrix = params.scoringMatrix[0];    // memoization of the scoring matrix row for the
                         // i-th amino acid.
-
-        GAP_OPEN = params.gapOP;
 
         // Fill in first columns in the matrix
         // INITIALISATION
@@ -66,11 +84,26 @@ export function pairwiseAlignment (
         // (also at the end) of the sequence, the rational being that
         // it is common to have ragged alignments between distant sequences.
         // (This optimization comes from MAFFT and is applied in MUSCLE).
+        // Note that some applications may require on the contrary that the
+        // opening gap penalty is similar between internal and external gaps.
+        // e.g.: partial alignment between diagonals of a larger alignment.
 
-        lMatchArr[0] = - GAP_OPEN / 2;
+
+        const GAP_OPEN = params.gapOP;
+
+        const GAP_START_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP
+            ? 0
+            : - GAP_OPEN / 2;
+
+        const GAP_END_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP
+            ? 0
+            : - GAP_OPEN / 2;
+
+
+        lMatchArr[0] = 0;
         lDelArr[0] = -Infinity;
         for (var j = 1; j <= lSeqBLen; j++) {
-            lMatchArr[j] = - GAP_OPEN / 2;
+            lMatchArr[j] = GAP_OPEN + GAP_START_CORRECTION; // No gap extension penalty
             lDelArr[j] = -Infinity;
         }
 
@@ -78,7 +111,7 @@ export function pairwiseAlignment (
 
         for (var i = 1; i <= lSeqALen; i++) {
 
-            lPrevMatch = - GAP_OPEN / 2;
+            lPrevMatch = GAP_OPEN + GAP_START_CORRECTION;
             lLastInsert = -Infinity;
             matrix = params.scoringMatrix[sA[i - 1]];   // memoize.
 
@@ -99,7 +132,7 @@ export function pairwiseAlignment (
                 gapOpenA = lMatchArr[j] + GAP_OPEN;
                 gapExtentA = lDelArr[j];
                 if (j === lSeqBLen) {
-                    gapOpenA -= GAP_OPEN / 2; // Terminal gap correction!
+                    gapOpenA += GAP_END_CORRECTION;
                 }
 
                 if (gapOpenA >= gapExtentA) {
@@ -123,13 +156,13 @@ export function pairwiseAlignment (
                 gapExtentB = lLastInsert;
 
                 if (i === lSeqALen) {
-                    gapOpenB -= GAP_OPEN / 2; // Terminal gap correction!
+                    gapOpenB += GAP_END_CORRECTION; // Terminal gap correction
                 }
 
                 if (gapOpenB >= gapExtentB) {
                     lLastInsert = gapOpenB;
                 } else {
-                    // No change on gap extend: lLastInsert += 0;
+                    // No score change on gap extend: lLastInsert += 0;
                     tb += TRACE_BACK.INS;
                 }
 
@@ -226,8 +259,10 @@ export function pairwiseAlignment (
             lCurrentMatrix = val;
         }
 
-        lAlignment[0] = lSeqA.reverse().join('');
-        lAlignment[1] = lSeqB.reverse().join('');
+        let lAlignment = [
+            lSeqA.reverse().join(''),
+            lSeqB.reverse().join('')
+        ];
 
         // if (DEBUG) Log.add('End traceback');
 
