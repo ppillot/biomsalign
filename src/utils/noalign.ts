@@ -55,7 +55,7 @@ import { DEQueue } from './queue';
 import { DEBUG } from "./params";
 import Log from "./logger";
 import { hammingWeight } from "./bitarray";
-import { pairwiseAlignment } from "./align";
+import { ALIGNOPT, pairwiseAlignment } from "./align";
 
 type TRange = {
     diagId: number,
@@ -394,14 +394,13 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
         lDebugStats['Extended Diagonals'] = {all: lExtDiagList.length};
         console.table(lDebugStats);
 
-        //console.log(lExtDiagList);
         //console.table(lMissingSegments);
     }
 
     // Make the alignment from the diagonals and fill the gaps
     let lSeqA = '';
     let lSeqB = '';
-    let lDiag: TRange;
+    let lDiag: TRange = lExtDiagList[0];
     for (let i = 0; i < lExtDiagList.length; i++) {
         lDiag = lExtDiagList[i];
         lSeqA += seqA.rawSeq.substring(lDiag.begin, lDiag.end);
@@ -432,7 +431,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 type: seqB.type,
                 compressedSeq: new Uint8Array(0),
                 encodedSeq: seqB.encodedSeq.slice(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
-            },[0],[1]);
+            },[0],[1]
+            , ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
             lSeqA += lResult.alignment[0];
             lSeqB += lResult.alignment[1];
@@ -467,6 +467,9 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
 
     if (DEBUG) {
         Log.add('Fill between diagonals');
+        let lMatches = 0;
+        for (let i = 0; i < lSeqA.length; i++) { if (lSeqB[i] === lSeqA[i]) lMatches ++;}
+        console.log('Matches:', lMatches);
     }
 
     // TODO: Finalize alignment here
