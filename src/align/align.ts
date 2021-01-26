@@ -12,9 +12,9 @@
  */
 
 import { getAlignmentParameters } from "./params";
-import { profileFromMSA } from "./profile";
-import { TSequence } from "./sequence";
-import { InternalNode, LeafNode } from "./tree";
+import { profileFromMSA } from "../sequence/profile";
+import { TSequence } from "../sequence/sequence";
+import { InternalNode, LeafNode } from "../sequence/tree";
 
 /**
  * Trace back matrix transitions values

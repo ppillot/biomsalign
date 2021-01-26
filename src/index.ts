@@ -10,12 +10,12 @@ import {
     encodeSeqToNum,
     getSequenceType,
     TSequence,
-} from './utils/sequence';
-import { setSeqType, DEBUG, SEQUENCE_TYPE, setAlignmentParameters } from './utils/params';
-import { pairwiseAlignment } from './utils/align';
-import { progressiveAlignment } from "./utils/progressive.alignment";
+} from './sequence/sequence';
+import { setSeqType, DEBUG, SEQUENCE_TYPE, setAlignmentParameters } from './align/params';
+import { pairwiseAlignment } from './align/align';
+import { progressiveAlignment } from "./align/progressive.alignment";
 import Log from './utils/logger';
-import { noalignPair } from './utils/noalign';
+import { noalignPair } from './align/noalign';
 
 export class BioMSA {
     private sequences: TSequence[];

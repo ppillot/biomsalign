@@ -4,9 +4,9 @@
  * @license MIT
  * @copyright 2020
  */
-import BitArray from './bitarray';
-import { DEBUG, SEQUENCE_TYPE } from './params';
-import Log from './logger';
+import BitArray from '../utils/bitarray';
+import { DEBUG, SEQUENCE_TYPE } from '../align/params';
+import Log from '../utils/logger';
 
 export type TSequence = {
     /** Sequence as a string */

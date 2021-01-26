@@ -13,10 +13,10 @@
  */
 
 import { DEBUG } from "./params";
-import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "./sequence";
+import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "../sequence/sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights,
-    compareTrees } from "./tree";
-import Log from './logger';
+    compareTrees } from "../sequence/tree";
+import Log from '../utils/logger';
 import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align";
 
 

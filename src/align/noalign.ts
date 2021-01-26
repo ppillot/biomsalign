@@ -50,11 +50,11 @@
  *
  */
 
-import { TSequence } from "./sequence";
-import { DEQueue } from './queue';
+import { TSequence } from "../sequence/sequence";
+import { DEQueue } from '../utils/queue';
 import { DEBUG } from "./params";
-import Log from "./logger";
-import { hammingWeight } from "./bitarray";
+import Log from "../utils/logger";
+import { hammingWeight } from "../utils/bitarray";
 import { ALIGNOPT, pairwiseAlignment } from "./align";
 
 type TRange = {
