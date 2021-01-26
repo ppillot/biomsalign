@@ -12,7 +12,8 @@ import {
     TSequence,
 } from './utils/sequence';
 import { setSeqType, DEBUG, SEQUENCE_TYPE, setAlignmentParameters } from './utils/params';
-import { pairwiseAlignment, progressiveAlignment } from './utils/align';
+import { pairwiseAlignment } from './utils/align';
+import { progressiveAlignment } from "./utils/progressive.alignment";
 import Log from './utils/logger';
 import { noalignPair } from './utils/noalign';
 
