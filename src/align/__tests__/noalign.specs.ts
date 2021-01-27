@@ -1,20 +1,21 @@
-import { extractMinimizers, TMinimizer, dnaHammingDistance } from '../noalign';
+import { extractMinimizers, dnaHammingDistance } from '../noalign';
 import { SEQUENCE_TYPE } from '../params';
 
 test('Extracts Minimizers from sequence', () => {
     const lSeq = {
-        rawSeq:'',
-        compressedSeq: [],
-        encodedSeq: [3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1,0,0,2,3,2,0,1,2],
+        rawSeq:'TGCCACCATGCAGCAGTGCAAGTGACG',
+        compressedSeq: new Uint8Array(),
+        encodedSeq: new Uint8Array([3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1,0,0,2,3,2,0,1,2]),
         type: SEQUENCE_TYPE.NUCLEIC
     }
     const lMin = (1 << 12) + (1 << 10) + (3 << 6) + (2 << 4) + (1 << 2);
-    const [lMinzMap, _] = extractMinimizers(lSeq, 8, 12);
+    let [lMinzMap, lMinzStore] = extractMinimizers(lSeq, 8, 12);
 
     expect(lMinzMap.has(lMin));
-    const lMinz0 = (lMinzMap.get(lMin) as TMinimizer[])[0];
-    expect(lSeq.encodedSeq.slice(lMinz0.winPos, lMinz0.winPosEnd)).toEqual([3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1])
-    expect(lMinz0.winPos).toBe(0);
+    const lMinzIdx = (lMinzMap.get(lMin) as number[])[0];
+    expect(Array.from(lSeq.encodedSeq.subarray(lMinzStore.winPos[lMinzIdx], lMinzStore.winPosEnd[lMinzIdx])))
+        .toEqual([3,2,1,1,0,1,1,0,3,2,1,0,2,3,2,1]);
+    expect(lMinzStore.winPos[lMinzIdx]).toBe(0);
 });
 
 test('Get Hamming distance from a pair of Kmers', () => {

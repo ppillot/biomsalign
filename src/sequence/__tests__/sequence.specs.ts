@@ -1,4 +1,4 @@
-import { SEQUENCE_TYPE } from '../params';
+import { SEQUENCE_TYPE } from '../../align/params';
 import { getSequenceType, encodeSeqToNum } from '../sequence';
 
 test('Detects DNA', () => {
@@ -25,5 +25,5 @@ test('Throws error when cannot detect sequence type', () => {
 
 test('Encodes proteic sequence', () => {
     const seq = 'ACDEFWY';
-    expect(encodeSeqToNum(seq, SEQUENCE_TYPE.PROTEIN)).toEqual([0, 1, 2, 3, 4, 18, 19]);
+    expect(Array.from(encodeSeqToNum(seq, SEQUENCE_TYPE.PROTEIN))).toEqual([0, 1, 2, 3, 4, 18, 19]);
 });
