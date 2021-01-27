@@ -6,8 +6,7 @@
  */
 
 import {
-    compressToDayhoff,
-    encodeSeqToNum,
+    makeSequence,
     getSequenceType,
     TSequence,
 } from './sequence/sequence';
@@ -25,10 +24,10 @@ export class BioMSA {
         this.sequences = [];
     }
 
-    public addSequences(seq: string | string[]) {
+    public addSequence(seq: string | string[]) {
         if (Array.isArray(seq)) {
             seq.forEach((s) => {
-                this.addSequences(s);
+                this.addSequence(s);
             });
             return;
         }
@@ -44,17 +43,7 @@ export class BioMSA {
             throw new Error('All sequences must be of same type.');
         }
 
-        this.sequences.push(this.makeSequenceObj(seq));
-    }
-
-    private makeSequenceObj(seq: string): TSequence {
-        const encodedSeq = encodeSeqToNum(seq, this.typeSeq);
-        return {
-            rawSeq: seq,
-            encodedSeq,
-            compressedSeq: this.typeSeq === SEQUENCE_TYPE.PROTEIN ? compressToDayhoff(encodedSeq) : encodedSeq,
-            type: this.typeSeq,
-        };
+        this.sequences.push(makeSequence(seq));
     }
 
     public reset() {
@@ -68,7 +57,7 @@ export class BioMSA {
         const msa = new Promise<any[]>((resolve, reject) => {
             if (seqArr !== undefined) {
                 if (Array.isArray(seqArr)) {
-                    this.addSequences(seqArr);
+                    this.addSequence(seqArr);
                 } else {
                     return reject('Array of sequences expected');
                 }

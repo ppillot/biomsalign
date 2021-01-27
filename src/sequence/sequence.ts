@@ -333,3 +333,14 @@ export function distanceKimura (msa: string[]) {
 
     return distMatrix;
 };
+
+export function makeSequence(seq: string, type?: SEQUENCE_TYPE): TSequence {
+    const lType = type ?? getSequenceType(seq);
+    const encodedSeq = encodeSeqToNum(seq, lType);
+    return {
+        rawSeq: seq,
+        encodedSeq,
+        compressedSeq: lType === SEQUENCE_TYPE.PROTEIN ? compressToDayhoff(encodedSeq) : encodedSeq,
+        type: lType,
+    };
+}
