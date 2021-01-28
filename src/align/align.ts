@@ -118,7 +118,7 @@ export function pairwiseAlignment (
         lMatchArr[0] = 0;
         lDelArr[0] = -Infinity;
         for (var j = 1; j <= lSeqBLen; j++) {
-            lMatchArr[j] = GAP_OPEN + GAP_START_CORRECTION; // No gap extension penalty
+            lMatchArr[j] = GAP_START_CORRECTION; // No gap extension penalty
             lDelArr[j] = -Infinity;
         }
 
@@ -126,7 +126,7 @@ export function pairwiseAlignment (
 
         for (var i = 1; i <= lSeqALen; i++) {
 
-            lPrevMatch = GAP_OPEN + GAP_START_CORRECTION;
+            lPrevMatch = GAP_START_CORRECTION;
             lLastInsert = -Infinity;
             matrix = params.scoringMatrix[sA[i - 1]];   // memoize.
 
