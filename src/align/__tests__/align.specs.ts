@@ -6,7 +6,7 @@ test('aligns ends', () => {
     const lSeqA = makeSequence('CCCAATTCTATACCAACAC');
     const lSeqB = makeSequence('CCCAATTCTA');
     setAlignmentParameters();
-    const lResult = pairwiseAlignment(lSeqA, lSeqB, [0], [1]);
+    const lResult = pairwiseAlignment(lSeqA, lSeqB);
 
     expect(lResult.alignment[1]).toBe('CCCAATTCTA---------');
 });

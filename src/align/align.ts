@@ -50,8 +50,6 @@ export const enum ALIGNOPT {
 export function pairwiseAlignment (
     seqA: TSequence,
     seqB: TSequence,
-    idA: number[],
-    idB: number[],
     opt = 0
 ) {
     const params = getAlignmentParameters();
@@ -294,7 +292,6 @@ export function pairwiseAlignment (
 
         return {
             alignment: lAlignment,
-            tSeqNames: idA.concat(idB),
             score: score
         };
 };
@@ -309,9 +306,7 @@ export function pairwiseAlignment (
  */
 export function MSASeqAlignment(
     nodeA: LeafNode,
-    nodeB: InternalNode,
-    tSeqANames: number[],
-    tSeqBNames: number[]
+    nodeB: InternalNode
 ) {
 
 
@@ -458,11 +453,10 @@ export function MSASeqAlignment(
     i = n;
     j = m;
     var indice = n * m + m,
-        k = 0,
-        tSeqNames = [];
+        k = 0;
 
     lAlignment.push( seqA.rawSeq , ...msaB);
-    tSeqNames = [...tSeqANames, ...tSeqBNames];
+
 
     var currentMatrix = (tb & 12) >> 2,
         value = 0;
@@ -503,7 +497,6 @@ export function MSASeqAlignment(
     }
     return {
         alignment: lAlignment,
-        tSeqNames: tSeqNames,
         score: score
     };
 }
@@ -519,12 +512,11 @@ export function MSASeqAlignment(
 
 export function MSAMSAAlignment(
     nodeA: InternalNode,
-    nodeB: InternalNode,
-    tSeqANames: number[],
-    tSeqBNames: number[]
+    nodeB: InternalNode
 ) {
 
-    var msaA, msaB, wB, wA, tSeqNames;
+    var msaA, msaB, wB, wA;
+    let lInverted = false;
 
     if (nodeA.msa.length < nodeB.msa.length) {
         //permutation: make B the smallest, to reduce iterations
@@ -532,20 +524,19 @@ export function MSAMSAAlignment(
         msaA = nodeB.msa;
         wB = nodeA.tabWeight;
         wA = nodeB.tabWeight;
-        tSeqNames = tSeqBNames.concat(tSeqANames);
+        lInverted = true;
     } else {
         msaA = nodeA.msa;
         msaB = nodeB.msa;
         wB = nodeB.tabWeight;
         wA = nodeA.tabWeight;
-        tSeqNames = tSeqANames.concat(tSeqBNames);
     }
 
-    var n = msaA[0].length,
+    const n = msaA[0].length,
         m = msaB[0].length,
-        Match = [],
+        tbM = new Uint8Array(n * (m + 1));
+    let Match = [],
         Delete = [],
-        tbM = new Uint8Array(n * (m + 1)),
         alignement = [],
         match = 0,
         gapOpenA = 0,
@@ -695,7 +686,7 @@ export function MSAMSAAlignment(
     var indice = n * m,
         k = 0,
         p = 0;
-    alignement = msaA.concat(msaB);
+    alignement = lInverted ? msaB.concat(msaA) : msaA.concat(msaB);
 
     var matriceActive = (tb & 12) >> 2,
         value = 0;
@@ -740,7 +731,6 @@ export function MSAMSAAlignment(
 
     return {
         alignment: alignement,
-        tSeqNames: tSeqNames,
         score: score
     };
 }

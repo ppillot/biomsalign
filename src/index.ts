@@ -78,7 +78,7 @@ export class BioMSA {
                     if (DEBUG) Log.summary();
                     return resolve(lAlignment);
                 }
-                let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], [0], [1]);
+                let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1]);
 
                 if (DEBUG) Log.summary();
 

@@ -431,8 +431,7 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 type: seqB.type,
                 compressedSeq: new Uint8Array(0),
                 encodedSeq: seqB.encodedSeq.slice(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
-            },[0],[1]
-            , ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
+            }, ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
             lSeqA += lResult.alignment[0];
             lSeqB += lResult.alignment[1];

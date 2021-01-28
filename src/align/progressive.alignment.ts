@@ -27,7 +27,7 @@ export function progressiveAlignment(seq: TSequence[]) {
 
         var nodeA = tree[node.childA],
             nodeB = tree[node.childB];
-        let result = {} as { alignment: string[]; tSeqNames: number[]; score: number; };
+        let result = {} as { alignment: string[], score: number; };
 
         // note: msa property has already been computed when the tree
         // has had subtrees from a previous alignment, copied over.
@@ -43,7 +43,7 @@ export function progressiveAlignment(seq: TSequence[]) {
         // Now nodeA and nodeB are either leaf or msa, we can align them
         if (isLeafNode(nodeA)) { //A is a single sequence
             if (isLeafNode(nodeB)) { //B is a single sequence
-                result = pairwiseAlignment(nodeA.seq, nodeB.seq, nodeA.numSeq, nodeB.numSeq);
+                result = pairwiseAlignment(nodeA.seq, nodeB.seq);
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
@@ -51,7 +51,7 @@ export function progressiveAlignment(seq: TSequence[]) {
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
-                result = MSASeqAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+                result = MSASeqAlignment(nodeA, nodeB);
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
@@ -61,13 +61,13 @@ export function progressiveAlignment(seq: TSequence[]) {
             nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
             nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
 
-            result = MSAMSAAlignment(nodeA, nodeB, nodeA.numSeq, nodeB.numSeq);
+            result = MSAMSAAlignment(nodeA, nodeB);
 
             if (DEBUG)
                 Log.add(`MSA ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
         }
         node.msa = result.alignment;
-        node.numSeq = result.tSeqNames;
+        node.numSeq = [...nodeA.numSeq, ...nodeB.numSeq];
 
         return result.score;
     };
