@@ -205,7 +205,9 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 }
 
 export function sortMSA (msa: string[], order: number[]) {
-    return order.map(v => msa[v]);
+    let lSorted = order.slice();
+    order.forEach((v, k) => lSorted[v] = k)
+    return lSorted.map(v => msa[v]);
 }
 
 const dayhoffPams = [

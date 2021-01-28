@@ -1,5 +1,5 @@
 import { SEQUENCE_TYPE } from '../../align/params';
-import { getSequenceType, encodeSeqToNum } from '../sequence';
+import { getSequenceType, encodeSeqToNum, sortMSA } from '../sequence';
 
 test('Detects DNA', () => {
     const seq = 'ATCG';
@@ -27,3 +27,9 @@ test('Encodes proteic sequence', () => {
     const seq = 'ACDEFWY';
     expect(Array.from(encodeSeqToNum(seq, SEQUENCE_TYPE.PROTEIN))).toEqual([0, 1, 2, 3, 4, 18, 19]);
 });
+
+test('Sorts MSA', () => {
+    const lMSA = ['a', 'b', 'c', 'd'];
+    const lOrder = [3, 0, 1, 2];
+    expect(sortMSA(lMSA, lOrder)).toEqual(['b', 'c', 'd', 'a']);
+})
