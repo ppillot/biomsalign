@@ -61,21 +61,32 @@ export type Profile = {
  */
 class ProfPos {
     m_bAllGaps = false;
-    m_uSortOrder: number[] = []; //acides aminés triés par ordre d'abondance
-    m_fcCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //effectif de chaque aa dans le profil à cette position
-    m_wCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //pondération pour chaque aa dans le profil à cette position
-    m_LL = 1;
-    m_LG = 0;
-    m_GL = 0;
-    m_GG = 0;
-    m_AAScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]; //scores pour chaque acide aminé
-    m_uResidueGroup = 0; //nb de résidus différents
-    m_fOcc = 1; //fréquence d'occupation de la position (non indels)
-    m_fcStartOcc = 0; //fréquence d'occupation par le début d'un gap
+    /** Residues sorted in decreasing frequency order */
+    m_uSortOrder: number[] = [];
+    /** Residues counts */
+    m_fcCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    /** Weighted contribution per residue */
+    m_wCounts = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    // m_LL = 1;
+    // m_LG = 0;
+    // m_GL = 0;
+    // m_GG = 0;
+    /** Substitution score computed at this position */
+    m_AAScores = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    /** Residue diversity (count per residue) */
+    m_uResidueGroup = 0;
+    /** Occupancy (non-indels) */
+    m_fOcc = 1;
+    /** Frequency of opening gaps */
+    m_fcStartOcc = 0;
+    /** Frequency of closing gaps */
     m_fcEndOcc = 0;
-    m_ScoreGapOpen = 0; //score pour l'ouverture d'un gap à cette position
-    m_ScoreGapClose = 0; //score pour la fermeture d'un gap à cette position
-    nbSeq = 0; //nb de séquences dans le profil
+    /** Gap Open penalty computed for this position */
+    m_ScoreGapOpen = 0;
+    /** Gap Close penalty computed for this position */
+    m_ScoreGapClose = 0;
+    /** Sequence count in this profile */
+    nbSeq = 0;
 }
 
 /**
@@ -158,11 +169,6 @@ export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[
             }
         }
     }
-    //tab[0].m_ScoreGapOpen /= 2;
-    //tab[longueur - 1].m_ScoreGapOpen /= 2;
-
-    //tab[0].m_ScoreGapClose /= 2;
-    //tab[longueur - 1].m_ScoreGapClose /= 2;
 
     return prof;
 }
