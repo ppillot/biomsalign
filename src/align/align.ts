@@ -93,207 +93,207 @@ export function pairwiseAlignment (
         matrix = params.scoringMatrix[0];    // memoization of the scoring matrix row for the
                         // i-th amino acid.
 
-        // Fill in first columns in the matrix
-        // INITIALISATION
-        // half gap open penalty is a tweak to favor gaps at the opening
-        // (also at the end) of the sequence, the rational being that
-        // it is common to have ragged alignments between distant sequences.
-        // (This optimization comes from MAFFT and is applied in MUSCLE).
-        // Note that some applications may require on the contrary that the
-        // opening gap penalty is similar between internal and external gaps.
-        // e.g.: partial alignment between diagonals of a larger alignment.
+    // Fill in first columns in the matrix
+    // INITIALISATION
+    // half gap open penalty is a tweak to favor gaps at the opening
+    // (also at the end) of the sequence, the rational being that
+    // it is common to have ragged alignments between distant sequences.
+    // (This optimization comes from MAFFT and is applied in MUSCLE).
+    // Note that some applications may require on the contrary that the
+    // opening gap penalty is similar between internal and external gaps.
+    // e.g.: partial alignment between diagonals of a larger alignment.
 
 
-        const GAP_OPEN = params.gapOP;
+    const GAP_OPEN = params.gapOP;
 
-        const GAP_START_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP
-            ? 0
-            : - GAP_OPEN / 2;
+    const GAP_START_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP
+        ? 0
+        : - GAP_OPEN / 2;
 
-        const GAP_END_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP
-            ? 0
-            : - GAP_OPEN / 2;
-
-
-        lMatchArr[0] = 0;
-        lDelArr[0] = -Infinity;
-        for (var j = 1; j <= lSeqBLen; j++) {
-            lMatchArr[j] = GAP_START_CORRECTION; // No gap extension penalty
-            lDelArr[j] = -Infinity;
-        }
-
-        // Main DP routine
-
-        for (var i = 1; i <= lSeqALen; i++) {
-
-            lPrevMatch = GAP_START_CORRECTION;
-            lLastInsert = -Infinity;
-            matrix = params.scoringMatrix[sA[i - 1]];   // memoize.
-
-            for (j = 1; j <= lSeqBLen; j++) {
-                tb = TRACE_BACK.MATCH;
+    const GAP_END_CORRECTION = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP
+        ? 0
+        : - GAP_OPEN / 2;
 
 
-                // Delete [i,j] score computation
-                //
-                //  lMatchArr was not cleared -> contains the computations
-                //      from the previous column (i-1).
-                //  lDelArr too.
-                //
-                //  - Gap extension is not computed due to the constant
-                //      added to the scoring matrix (see addCentre).
+    lMatchArr[0] = 0;
+    lDelArr[0] = -Infinity;
+    for (var j = 1; j <= lSeqBLen; j++) {
+        lMatchArr[j] = GAP_START_CORRECTION; // No gap extension penalty
+        lDelArr[j] = -Infinity;
+    }
+
+    // Main DP routine
+
+    for (var i = 1; i <= lSeqALen; i++) {
+
+        lPrevMatch = GAP_START_CORRECTION;
+        lLastInsert = -Infinity;
+        matrix = params.scoringMatrix[sA[i - 1]];   // memoize.
+
+        for (j = 1; j <= lSeqBLen; j++) {
+            tb = TRACE_BACK.MATCH;
 
 
-                gapOpenA = lMatchArr[j] + GAP_OPEN;
-                gapExtentA = lDelArr[j];
-                if (j === lSeqBLen) {
-                    gapOpenA += GAP_END_CORRECTION;
-                }
-
-                if (gapOpenA >= gapExtentA) {
-                    lDelArr[j] = gapOpenA;
-                } else {
-                    // No change on gap extent: lDelArr[j] += 0;
-                    tb += TRACE_BACK.DEL;
-                }
+            // Delete [i,j] score computation
+            //
+            //  lMatchArr was not cleared -> contains the computations
+            //      from the previous column (i-1).
+            //  lDelArr too.
+            //
+            //  - Gap extension is not computed due to the constant
+            //      added to the scoring matrix (see addCentre).
 
 
-                // Insert [i,j] score computation
-                //  - lPrevMatch is the value that has just been computed
-                //      for the match at this column. We can't use lMatchArr
-                //      to store it yet, because for perf reason we are
-                //      saving space on this vector.
-                //  - ExtentB is still the score for the previous insert
-                //      value. Due to the addCentre() trick, no need to add
-                //      gap extension penalty here.
-
-                gapOpenB = lPrevMatch + GAP_OPEN;
-                gapExtentB = lLastInsert;
-
-                if (i === lSeqALen) {
-                    gapOpenB += GAP_END_CORRECTION; // Terminal gap correction
-                }
-
-                if (gapOpenB >= gapExtentB) {
-                    lLastInsert = gapOpenB;
-                } else {
-                    // No score change on gap extend: lLastInsert += 0;
-                    tb += TRACE_BACK.INS;
-                }
-
-
-                // Match [i,j] score computation
-                lMatch = lMatchArr[j - 1] + matrix[sB[j - 1]];
-
-                lMatchArr[j - 1] = lPrevMatch;  // var rotation
-
-                if (lMatch >= lLastInsert) {
-                    if (lMatch >= lDelArr[j]) { // match is optimal
-                        lPrevMatch = lMatch;
-                    } else {                    // delete is optimal
-                        lPrevMatch = lDelArr[j];
-                        tb += TRACE_BACK.MATCH2DEL;
-                    }
-
-                } else {
-                    if (lLastInsert >= lDelArr[j]) { // insert is optimal
-                        lPrevMatch = lLastInsert;
-                        tb += TRACE_BACK.MATCH2INS;
-                    } else {                         // delete is optimal
-                        lPrevMatch = lDelArr[j];
-                        tb += TRACE_BACK.MATCH2DEL;
-                    }
-                }
-
-                // Store trace-back bits
-                tbIdx = i * lSeqBLen + j;
-                isOdd =  tbIdx % 2;
-                tbIdx = tbIdx >>> 1;
-                if (isOdd) {
-                    tbM[tbIdx] += tb
-                } else {
-                    tbM[tbIdx] += tb << 4;
-                }
-
+            gapOpenA = lMatchArr[j] + GAP_OPEN;
+            gapExtentA = lDelArr[j];
+            if (j === lSeqBLen) {
+                gapOpenA += GAP_END_CORRECTION;
             }
 
-            // fix match vector for its last value
-            lMatchArr[lSeqBLen] = lPrevMatch;
-
-        }
-
-        // if (DEBUG) Log.add('End DP computation');
-
-        var score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
-
-        // Traceback
-        // Move backwards starting from the last optimal scoring position
-        // in the TB matrix.
-
-        i = lSeqALen;
-        j = lSeqBLen;
-        var lIdx = lSeqALen * lSeqBLen + lSeqBLen;
-        const lSeqA: string[] = [];
-        const lSeqB: string[] = [];
-
-        // current matrix is either M (0), D (1) or I(2). Let's have a look
-        // at the last value to see if the optimum is coming from DEL
-        // (bit value 4) or INS (bit value 8) or Match (no bit value)
-        var lCurrentMatrix = (tb & 12) >> 2,
-            val = 0;
-
-        while ((i > 0) && (j > 0)) {
-            lIdx = i * lSeqBLen + j;
-            tbIdx = lIdx >>> 1;
-            isOdd = lIdx % 2;
-            val = tbM[tbIdx];
-            val = isOdd ? val & 0b1111 : val >>> 4;
-            if (lCurrentMatrix === 0) {
-                val = val >> 2;
-                if (val === 0) { //-->Match
-                    i--;
-                    j--;
-                    lSeqA.push(seqA.rawSeq[i]);
-                    lSeqB.push(seqB.rawSeq[j]);
-                }
-                // other cases --> run the loop once more to enter the
-                // following block.
+            if (gapOpenA >= gapExtentA) {
+                lDelArr[j] = gapOpenA;
             } else {
-                if (lCurrentMatrix === 2) { //-->Ins
-                    j--;
-                    lSeqA.push('-');
-                    lSeqB.push(seqB.rawSeq[j]);
-                    val = val & 2;
-                } else { //1 --> Del
-                    i--;
-                    lSeqA.push(seqA.rawSeq[i]);
-                    lSeqB.push('-');
-                    val = val & 1;
+                // No change on gap extent: lDelArr[j] += 0;
+                tb += TRACE_BACK.DEL;
+            }
+
+
+            // Insert [i,j] score computation
+            //  - lPrevMatch is the value that has just been computed
+            //      for the match at this column. We can't use lMatchArr
+            //      to store it yet, because for perf reason we are
+            //      saving space on this vector.
+            //  - ExtentB is still the score for the previous insert
+            //      value. Due to the addCentre() trick, no need to add
+            //      gap extension penalty here.
+
+            gapOpenB = lPrevMatch + GAP_OPEN;
+            gapExtentB = lLastInsert;
+
+            if (i === lSeqALen) {
+                gapOpenB += GAP_END_CORRECTION; // Terminal gap correction
+            }
+
+            if (gapOpenB >= gapExtentB) {
+                lLastInsert = gapOpenB;
+            } else {
+                // No score change on gap extend: lLastInsert += 0;
+                tb += TRACE_BACK.INS;
+            }
+
+
+            // Match [i,j] score computation
+            lMatch = lMatchArr[j - 1] + matrix[sB[j - 1]];
+
+            lMatchArr[j - 1] = lPrevMatch;  // var rotation
+
+            if (lMatch >= lLastInsert) {
+                if (lMatch >= lDelArr[j]) { // match is optimal
+                    lPrevMatch = lMatch;
+                } else {                    // delete is optimal
+                    lPrevMatch = lDelArr[j];
+                    tb += TRACE_BACK.MATCH2DEL;
+                }
+
+            } else {
+                if (lLastInsert >= lDelArr[j]) { // insert is optimal
+                    lPrevMatch = lLastInsert;
+                    tb += TRACE_BACK.MATCH2INS;
+                } else {                         // delete is optimal
+                    lPrevMatch = lDelArr[j];
+                    tb += TRACE_BACK.MATCH2DEL;
                 }
             }
-            lCurrentMatrix = val;
+
+            // Store trace-back bits
+            tbIdx = i * lSeqBLen + j;
+            isOdd =  tbIdx % 2;
+            tbIdx = tbIdx >>> 1;
+            if (isOdd) {
+                tbM[tbIdx] += tb
+            } else {
+                tbM[tbIdx] += tb << 4;
+            }
+
         }
 
-        let lAlignment = [
-            lSeqA.reverse().join(''),
-            lSeqB.reverse().join('')
-        ];
+        // fix match vector for its last value
+        lMatchArr[lSeqBLen] = lPrevMatch;
 
-        // if (DEBUG) Log.add('End traceback');
+    }
 
-        // Finish sequences edit by appending the remaining symbols
-        if (i > 0) {
-            lAlignment[1] = '-'.repeat(i) + lAlignment[1];
-            lAlignment[0] = seqA.rawSeq.substring(0, i) + lAlignment[0];
-        } else if (j > 0) {
-            lAlignment[0] = '-'.repeat(j) + lAlignment[0];
-            lAlignment[1] = seqB.rawSeq.substring(0, j) + lAlignment[1];
+    // if (DEBUG) Log.add('End DP computation');
+
+    var score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
+
+    // Traceback
+    // Move backwards starting from the last optimal scoring position
+    // in the TB matrix.
+
+    i = lSeqALen;
+    j = lSeqBLen;
+    var lIdx = lSeqALen * lSeqBLen + lSeqBLen;
+    const lSeqA: string[] = [];
+    const lSeqB: string[] = [];
+
+    // current matrix is either M (0), D (1) or I(2). Let's have a look
+    // at the last value to see if the optimum is coming from DEL
+    // (bit value 4) or INS (bit value 8) or Match (no bit value)
+    var lCurrentMatrix = (tb & 12) >> 2,
+        val = 0;
+
+    while ((i > 0) && (j > 0)) {
+        lIdx = i * lSeqBLen + j;
+        tbIdx = lIdx >>> 1;
+        isOdd = lIdx % 2;
+        val = tbM[tbIdx];
+        val = isOdd ? val & 0b1111 : val >>> 4;
+        if (lCurrentMatrix === 0) {
+            val = val >> 2;
+            if (val === 0) { //-->Match
+                i--;
+                j--;
+                lSeqA.push(seqA.rawSeq[i]);
+                lSeqB.push(seqB.rawSeq[j]);
+            }
+            // other cases --> run the loop once more to enter the
+            // following block.
+        } else {
+            if (lCurrentMatrix === 2) { //-->Ins
+                j--;
+                lSeqA.push('-');
+                lSeqB.push(seqB.rawSeq[j]);
+                val = val & 2;
+            } else { //1 --> Del
+                i--;
+                lSeqA.push(seqA.rawSeq[i]);
+                lSeqB.push('-');
+                val = val & 1;
+            }
         }
+        lCurrentMatrix = val;
+    }
 
-        return {
-            alignment: lAlignment,
-            score: score
-        };
+    let lAlignment = [
+        lSeqA.reverse().join(''),
+        lSeqB.reverse().join('')
+    ];
+
+    // if (DEBUG) Log.add('End traceback');
+
+    // Finish sequences edit by appending the remaining symbols
+    if (i > 0) {
+        lAlignment[1] = '-'.repeat(i) + lAlignment[1];
+        lAlignment[0] = seqA.rawSeq.substring(0, i) + lAlignment[0];
+    } else if (j > 0) {
+        lAlignment[0] = '-'.repeat(j) + lAlignment[0];
+        lAlignment[1] = seqB.rawSeq.substring(0, j) + lAlignment[1];
+    }
+
+    return {
+        alignment: lAlignment,
+        score: score
+    };
 };
 
 
