@@ -170,5 +170,11 @@ export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[
         }
     }
 
+    //  Correction for end/begin gap penalties
+    prof[0]  .m_ScoreGapOpen  /= 2;
+    prof[l-1].m_ScoreGapOpen  /= 2;
+    prof[0]  .m_ScoreGapClose /= 2;
+    prof[l-1].m_ScoreGapClose /= 2;
+
     return prof;
 }
