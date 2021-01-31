@@ -310,83 +310,85 @@ export function MSASeqAlignment(
 
 
 
-    const seqA = nodeA.seq,
+    const seqB = nodeA.seq,
         //wA = noeudA.weight, //probably unnecessary
-        msaB = nodeB.msa,
-        lSeqALen = seqA.rawSeq.length,
-        lProfBLen = msaB[0].length;
+        msaA = nodeB.msa,
+        lSeqBLen = seqB.rawSeq.length,
+        lProfALen = msaA[0].length;
 
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
         lDelArr  : number[] = [];
-    const tbM = new Uint8Array((lProfBLen + 1) * (lSeqALen + 1)),
+    const tbM = new Uint8Array((lProfALen + 1) * (lSeqBLen + 1)),
         lAlignment: string[] = [];
+
     let lGapOpenA = 0.0,
-        gapOpenB = 0.0,
-        gapExtendA = 0.0,
-        gapExtendB = 0.0,
+        lGapOpenB = 0.0,
+        lGapExtendA = 0.0,
+        lGapExtendB = 0.0,
         tb = 0,
-        lastInsert = 0.0,
-        prevLastInsert = 0.0,
-        prevMatch = 0.0,
-        prevDelete = 0.0,
-        deletej_1 = 0.0,
-        inserti_1 = 0.0,
-        //M0 = 0.0,
-        //profBGapEP = 0.0,
-        profBGapOP = 0.0, //gap open penalty for profB at pos i-1
-        profBGapCP = 0.0, //gap close penalty for profB at pos i-1
-        profBAAScores = []; //substitution scores for profB at pos i-1
+        lLastInsert = 0.0,
+        lPrevLastInsert = 0.0,
+        lPrevMatch = 0.0,
+        lDeletej_1 = 0.0,
+        lInserti_1 = 0.0,
+        /** Position specific gap open penaly of profile A at pos i-1 */
+        lProfAGapOP = 0.0,
+        /** Position specific gap close penalty of profile A at pos i-1 */
+        lProfAGapCP = 0.0,
+        /** Position specific substitution scores of profile A at pos i-1 */
+        lProfASScores = [];
 
     const params = getAlignmentParameters();
 
-    var gapOP = params.gapOP;
-    var seqAGapOP = gapOP / 2;
-    var seqAGapCP = gapOP / 2;
+    const GAP_OPEN    = params.gapOP;
+    const GAP_OPEN_B  = GAP_OPEN / 2;
+    const GAP_CLOSE_B = GAP_OPEN / 2;
 
-    // sequence A as number vector
-    const sA = seqA.encodedSeq;
+    // sequence B as a vector of integers
+    const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    var profB = profileFromMSA(msaB, gapOP, nodeB.tabWeight);
+    const profA = profileFromMSA(msaA, GAP_OPEN, nodeB.tabWeight);
 
-    //in this alignment for performance reasons, profB is explored from i=0 to n
-    //and seqA is explored from j=0 to m
+    // Note that for performance reason, the outer loop iterates on profile A.
+    // This allows caching the values for substitution scores used in the inner
+    // loop when iterating over seqB values.
 
-    //INITIALIZATION
-    lMatchArr[0] = 0; //_utils.sumOfPairsScoreSP(sA[0], profB[0]);
+    // INITIALIZATION of DP vectors
+    lMatchArr[0] = 0;
     lDelArr[0] = -Infinity;
-    for (let j = 1; j <= lSeqALen; j++) {
-        lMatchArr[j] = (seqAGapOP + seqAGapCP) / 2; //gap open at j=0 + gap close at j-1
+    for (let j = 1; j <= lSeqBLen; j++) {
+        lMatchArr[j] = (GAP_OPEN_B + GAP_CLOSE_B) / 2; //gap open at j=0 + gap close at j-1
         lDelArr[j] = -Infinity;
     }
 
     //Main DP routine
-    //M0 = Match[0] + profB[0].m_ScoreGapOpen; //est deux fois plus faible qu'une pénalité d'ouverture normale (début de séquence)
+    // Note that profile's gap penalties are halved at their extremities
 
-    for (let i = 1; i <= lProfBLen; i++) {
+    for (let i = 1; i <= lProfALen; i++) {
 
-        profBGapOP = profB[i - 1].m_ScoreGapOpen;
-        profBGapCP = profB[i - 1].m_ScoreGapClose;
-        profBAAScores = profB[i - 1].m_AAScores;
+        lProfAGapOP = profA[i - 1].m_ScoreGapOpen;
+        lProfAGapCP = profA[i - 1].m_ScoreGapClose;
+        lProfASScores = profA[i - 1].m_AAScores;
 
-        //M0 += profBGapEP / 2;
-// Should it be a correction?
-        prevMatch = 0; //(i===1) ? 0 : profB[0].m_ScoreGapOpen + profBGapCP/2 ;
-        lastInsert = -Infinity;
-        lDelArr[0] = profB[0].m_ScoreGapOpen;
+            // lPrevMatch is a scalar, used to compute on the same column (iterations
+            // over j) the gap open penalty
+        lPrevMatch = - GAP_OPEN_B / 2;
+        lLastInsert = -Infinity;
+        lDelArr[0] = profA[0].m_ScoreGapOpen;
 
-        for (let j = 1; j <= lSeqALen; j++) {
+        for (let j = 1; j <= lSeqBLen; j++) {
             tb = TRACE_BACK.MATCH;
 
             //Delete i,j score computation
-            lGapOpenA = lMatchArr[j] + profBGapOP; //
-            gapExtendA = prevDelete = lDelArr[j];
-            if (j === lSeqALen) { //terminal penalties are halved
-                lGapOpenA -= profBGapOP / 2;
+            lGapOpenA = lMatchArr[j] + lProfAGapOP; //
+            lGapExtendA = lDelArr[j];
+            if (j === lSeqBLen) { //terminal penalties are halved
+                lGapOpenA -= lProfAGapOP / 2;
             }
 
-            if (lGapOpenA >= gapExtendA) {
+            if (lGapOpenA >= lGapExtendA) {
                 lDelArr[j] = lGapOpenA;
             } else {
                 //Delete[j] = gapExtendA;
@@ -394,73 +396,73 @@ export function MSASeqAlignment(
             }
 
             //Insert i,j score computation
-            gapOpenB = prevMatch + seqAGapOP;
-            gapExtendB = prevLastInsert = lastInsert;
-            if (i === lProfBLen) {
-                gapOpenB -= seqAGapOP / 2;
+            lGapOpenB = lPrevMatch + GAP_OPEN_B;
+            lGapExtendB = lPrevLastInsert = lLastInsert;
+            if (i === lProfALen) {
+                lGapOpenB -= GAP_OPEN_B / 2;
             }
 
-            if (gapOpenB >= gapExtendB) {
-                lastInsert = gapOpenB;
+            if (lGapOpenB >= lGapExtendB) {
+                lLastInsert = lGapOpenB;
             } else {
                 //gap extend, not score change;
                 tb += TRACE_BACK.INS;
             }
 
             //Match i,j score computation
-            deletej_1 = lDelArr[j] + profBGapCP; //it should be prev
-            inserti_1 = prevLastInsert + seqAGapCP;
-            lMatch = lMatchArr[j - 1] + profBAAScores[sA[j - 1]];
+            lDeletej_1 = lDelArr[j] + lProfAGapCP; //it should be prev
+            lInserti_1 = lPrevLastInsert + GAP_CLOSE_B;
+            lMatch = lMatchArr[j - 1] + lProfASScores[sB[j - 1]];
 
             if (j === 1) { //terminal penalties are halved
-                deletej_1 -= profBGapCP / 2;
+                lDeletej_1 -= lProfAGapCP / 2;
             }
             if (i === 1) {
-                inserti_1 -= seqAGapCP / 2;
+                lInserti_1 -= GAP_CLOSE_B / 2;
             }
-            if ((j === lSeqALen) && (i === lProfBLen)) {
-                deletej_1 -= profBGapCP / 2;
-                inserti_1 -= seqAGapCP / 2;
+            if ((j === lSeqBLen) && (i === lProfALen)) {
+                lDeletej_1 -= lProfAGapCP / 2;
+                lInserti_1 -= GAP_CLOSE_B / 2;
             }
 
-            lMatchArr[j - 1] = prevMatch;
+            lMatchArr[j - 1] = lPrevMatch;
 
-            if (lMatch >= inserti_1) {
-                if (lMatch >= deletej_1) { //match is optimal
-                    prevMatch = lMatch;
+            if (lMatch >= lInserti_1) {
+                if (lMatch >= lDeletej_1) { //match is optimal
+                    lPrevMatch = lMatch;
                 } else { //delete is optimal
-                    prevMatch = deletej_1;
+                    lPrevMatch = lDeletej_1;
                     tb += TRACE_BACK.MATCH2DEL;
                 }
 
             } else {
-                if (inserti_1 >= deletej_1) { //insert is optimal
-                    prevMatch = inserti_1;
+                if (lInserti_1 >= lDeletej_1) { //insert is optimal
+                    lPrevMatch = lInserti_1;
                     tb += TRACE_BACK.MATCH2INS;
                 } else { //delete is optimal
-                    prevMatch = deletej_1;
+                    lPrevMatch = lDeletej_1;
                     tb += TRACE_BACK.MATCH2DEL;
                 }
             }
-            tbM[i * lSeqALen + j] = tb;
+            tbM[i * lSeqBLen + j] = tb;
         }
-        lMatchArr[lSeqALen] = prevMatch;
+        lMatchArr[lSeqBLen] = lPrevMatch;
     }
-    var score = Math.max(lMatch, lastInsert, lDelArr[lDelArr.length - 2]);
+    var score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 2]);
 
     //traceback
-    let i = lProfBLen;
-    let j = lSeqALen;
-    var indice = lProfBLen * lSeqALen + lSeqALen,
+    let i = lProfALen;
+    let j = lSeqBLen;
+    var indice = lProfALen * lSeqBLen + lSeqBLen,
         k = 0;
 
-    lAlignment.push( seqA.rawSeq , ...msaB);
+    lAlignment.push( seqB.rawSeq , ...msaA);
 
 
     var currentMatrix = (tb & 12) >> 2,
         value = 0;
     while ((i > 0) && (j > 0)) {
-        indice = i * lSeqALen + j;
+        indice = i * lSeqBLen + j;
 
         if (currentMatrix === 0) {
             value = tbM[indice] >> 2;
