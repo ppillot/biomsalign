@@ -51,7 +51,7 @@ export function progressiveAlignment(seq: TSequence[]) {
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
-                result = MSASeqAlignment(nodeA, nodeB);
+                result = MSASeqAlignment(nodeB, nodeA);
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);

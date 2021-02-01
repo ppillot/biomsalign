@@ -298,21 +298,21 @@ export function pairwiseAlignment (
 /**
  * Profile to sequence Alignment
  *
- * @param {LeafNode} nodeA a node object containing one sequence and its weight
- * @param {InternalNode} nodeB a node object containing a profile and its weight
+ * @param {LeafNode} nodeB a node object containing one sequence and its weight
+ * @param {InternalNode} nodeA a node object containing a profile and its weight
  * @return {array) array containing aligned sequences
  */
 export function MSASeqAlignment(
-    nodeA: LeafNode,
-    nodeB: InternalNode,
+    nodeA: InternalNode,
+    nodeB: LeafNode,
     opt = 0
 ) {
 
 
 
-    const seqB = nodeA.seq,
+    const seqB = nodeB.seq,
         //wA = noeudA.weight, //probably unnecessary
-        msaA = nodeB.msa,
+        msaA = nodeA.msa,
         lSeqBLen = seqB.rawSeq.length,
         lProfALen = msaA[0].length;
 
@@ -349,7 +349,7 @@ export function MSASeqAlignment(
     const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    const profA = profileFromMSA(msaA, GAP_OPEN, nodeB.tabWeight);
+    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight);
 
     // Note that for performance reason, the outer loop iterates on profile A.
     // This allows caching the values for substitution scores used in the inner
@@ -575,7 +575,6 @@ export function MSAMSAAlignment(
     for (var i = 0; i < profB.length; i++) {
         profBWCountsTab.push(profB[i].m_wCounts);
     }*/
-    //$log.debug(profBWCountsTab);
     //remplissage de la première ligne et de la première colonne de la matrice
     //INITIALISATION
     Match[0] = 0; //_utils.sumOfPairsScorePP(profA[0], profB[0]);
