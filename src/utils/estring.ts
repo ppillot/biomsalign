@@ -102,3 +102,21 @@ export function estringProduct (estringB: number[], estringA: number[]): number[
 
     return lSteps;
 }
+
+/**
+ * Edit strings catenation.
+ *
+ * @export
+ * @param {number[]} estringA
+ * @param {number[]} estringB
+ * @returns {number[]}
+ */
+export function estringCat (estringA: number[], estringB: number[]) {
+    if (Math.sign(estringA[estringA.length - 1]) === Math.sign(estringB[0])) {
+        let lRet = [...estringA];
+        lRet[lRet.length - 1] += estringB[0];
+        lRet.push(...estringB.slice(1));    // avoid changing reference
+        return lRet;
+    }
+    return [...estringA, ...estringB];
+}
