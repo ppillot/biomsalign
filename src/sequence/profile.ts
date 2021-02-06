@@ -5,6 +5,7 @@
  * @copyright 2020
  */
 
+import { ALIGNOPT } from '../align/align';
 import { getAlignmentParameters, SEQUENCE_TYPE } from '../align/params';
 import { aaToNum, nucToNum } from './sequence';
 
@@ -98,7 +99,7 @@ class ProfPos {
  * @param {number}  pGapO: gap opening penalty
  * @param {number[]} pWeights : weight of each sequence
  */
-export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[]) {
+export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[], opt: number = 0) {
     /** alignment length (columns count) */
     const l = pMSA[0].length;
 
@@ -170,11 +171,17 @@ export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[
         }
     }
 
-    //  Correction for end/begin gap penalties
-    prof[0]  .m_ScoreGapOpen  /= 2;
-    prof[l-1].m_ScoreGapOpen  /= 2;
-    prof[0]  .m_ScoreGapClose /= 2;
-    prof[l-1].m_ScoreGapClose /= 2;
+
+    //  Corrections for end/begin gap penalties
+    if (opt ^ ALIGNOPT.DISABLE_FAVOR_START_GAP) {
+        prof[0]  .m_ScoreGapOpen  /= 2;
+        prof[l-1].m_ScoreGapOpen  /= 2;
+    }
+    if (opt ^ ALIGNOPT.DISABLE_FAVOR_END_GAP) {
+        prof[0]  .m_ScoreGapClose /= 2;
+        prof[l-1].m_ScoreGapClose /= 2;
+    }
+
 
     return prof;
 }

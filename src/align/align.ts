@@ -345,11 +345,19 @@ export function MSASeqAlignment(
     const GAP_OPEN_B  = GAP_OPEN / 2;
     const GAP_CLOSE_B = GAP_OPEN / 2;
 
+    const GAP_START_CORRECTION_B = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP
+        ? 0
+        : - GAP_OPEN / 4;
+
+    const GAP_END_CORRECTION_B = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP
+        ? 0
+        : - GAP_OPEN / 4;
+
     // sequence B as a vector of integers
     const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight);
+    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight, opt);
 
     // Note that for performance reason, the outer loop iterates on profile A.
     // This allows caching the values for substitution scores used in the inner
@@ -359,7 +367,7 @@ export function MSASeqAlignment(
     lMatchArr[0] = 0;
     lDelArr[0] = -Infinity;
     for (let j = 1; j <= lSeqBLen; j++) {
-        lMatchArr[j] = (GAP_OPEN_B + GAP_CLOSE_B) / 2; //gap open at j=0 + gap close at j-1
+        lMatchArr[j] = GAP_OPEN_B + GAP_CLOSE_B + GAP_START_CORRECTION_B; //gap open at j=0 + gap close at j-1
         lDelArr[j] = -Infinity;
     }
 
@@ -374,9 +382,10 @@ export function MSASeqAlignment(
 
             // lPrevMatch is a scalar, used to compute on the same column (iterations
             // over j) the gap open penalty
-        lPrevMatch = - GAP_OPEN_B / 2;
+        lPrevMatch = GAP_START_CORRECTION_B / 2;
         lLastInsert = -Infinity;
         lDelArr[0] = profA[0].m_ScoreGapOpen;
+        lPrevLastInsert = GAP_END_CORRECTION_B / 2;
 
         for (let j = 1; j <= lSeqBLen; j++) {
             tb = TRACE_BACK.MATCH;
@@ -399,7 +408,7 @@ export function MSASeqAlignment(
             lGapOpenB = lPrevMatch + GAP_OPEN_B;
             lGapExtendB = lPrevLastInsert = lLastInsert;
             if (i === lProfALen) {
-                lGapOpenB -= GAP_OPEN_B / 2;
+                lGapOpenB += GAP_END_CORRECTION_B / 2;
             }
 
             if (lGapOpenB >= lGapExtendB) {
@@ -414,15 +423,8 @@ export function MSASeqAlignment(
             lInserti_1 = lPrevLastInsert + GAP_CLOSE_B;
             lMatch = lMatchArr[j - 1] + lProfASScores[sB[j - 1]];
 
-            if (j === 1) { //terminal penalties are halved
-                lDeletej_1 -= lProfAGapCP / 2;
-            }
-            if (i === 1) {
-                lInserti_1 -= GAP_CLOSE_B / 2;
-            }
-            if ((j === lSeqBLen) && (i === lProfALen)) {
-                lDeletej_1 -= lProfAGapCP / 2;
-                lInserti_1 -= GAP_CLOSE_B / 2;
+            if (j === lSeqBLen) {
+                lInserti_1 += GAP_END_CORRECTION_B / 2;
             }
 
             lMatchArr[j - 1] = lPrevMatch;
@@ -513,7 +515,8 @@ export function MSASeqAlignment(
 
 export function MSAMSAAlignment(
     nodeA: InternalNode,
-    nodeB: InternalNode
+    nodeB: InternalNode,
+    opt = 0
 ) {
 
     var msaA, msaB, wB, wA;
@@ -561,8 +564,8 @@ export function MSAMSAAlignment(
     var gapOP = _params.gapOP;
 
     //convert to profile
-    var profB = profileFromMSA(msaB, gapOP, wB);
-    var profA = profileFromMSA(msaA, gapOP, wA);
+    var profB = profileFromMSA(msaB, gapOP, wB, opt);
+    var profA = profileFromMSA(msaA, gapOP, wA, opt);
 
     var profBGapOPTab = [],
         profBGapCPTab = [];
