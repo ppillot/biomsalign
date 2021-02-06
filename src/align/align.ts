@@ -450,24 +450,24 @@ export function MSASeqAlignment(
         }
         lMatchArr[lSeqBLen] = lPrevMatch;
     }
-    var score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 2]);
+    const score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 2]);
 
     //traceback
     let i = lProfALen;
     let j = lSeqBLen;
-    var indice = lProfALen * lSeqBLen + lSeqBLen,
+    let idx = lProfALen * lSeqBLen + lSeqBLen,
         k = 0;
 
     lAlignment.push( seqB.rawSeq , ...msaA);
 
 
-    var currentMatrix = (tb & 12) >> 2,
+    let currentMatrix = (tb & 12) >> 2,
         value = 0;
     while ((i > 0) && (j > 0)) {
-        indice = i * lSeqBLen + j;
+        idx = i * lSeqBLen + j;
 
         if (currentMatrix === 0) {
-            value = tbM[indice] >> 2;
+            value = tbM[idx] >> 2;
             if (value === 0) {
                 i--;
                 j--;
@@ -477,12 +477,12 @@ export function MSASeqAlignment(
                 for (k = 1; k < lAlignment.length; k++) {
                     lAlignment[k] = lAlignment[k].substring(0, i) + '-' + lAlignment[k].substring(i);
                 }
-                value = tbM[indice] & 2; //@@PP same as in _pairwise ?
+                value = tbM[idx] & 2; //@@PP same as in _pairwise ?
                 j--;
 
             } else {
                 lAlignment[0] = lAlignment[0].substring(0, j) + '-' + lAlignment[0].substring(j);
-                value = tbM[indice] & 1;
+                value = tbM[idx] & 1;
                 i--;
             }
         }
@@ -508,9 +508,6 @@ export function MSASeqAlignment(
  * profile to profile alignment
  * @param {object} noeudA a node object containing a multiple sequence alignment and its weight
  * @param {object} noeudB a node object containing a multiple sequence alignment and its weight
- * @param {integer} gE optional gap extension penalty parameter
- * @param {integer} gO optional gap open penalty parameter
- * @return {array) array containing aligned sequences
  */
 
 export function MSAMSAAlignment(
@@ -519,221 +516,224 @@ export function MSAMSAAlignment(
     opt = 0
 ) {
 
-    var msaA, msaB, wB, wA;
+    let lMsaA: string[],
+        lMsaB: string[],
+        lWtB: number[],
+        lWtA: number[];
     let lInverted = false;
 
+    //permutation: make B the smallest, to reduce iterations
     if (nodeA.msa.length < nodeB.msa.length) {
-        //permutation: make B the smallest, to reduce iterations
-        msaB = nodeA.msa;
-        msaA = nodeB.msa;
-        wB = nodeA.tabWeight;
-        wA = nodeB.tabWeight;
+        lMsaB = nodeA.msa;
+        lMsaA = nodeB.msa;
+        lWtB = nodeA.tabWeight;
+        lWtA = nodeB.tabWeight;
         lInverted = true;
     } else {
-        msaA = nodeA.msa;
-        msaB = nodeB.msa;
-        wB = nodeB.tabWeight;
-        wA = nodeA.tabWeight;
+        lMsaA = nodeA.msa;
+        lMsaB = nodeB.msa;
+        lWtB = nodeB.tabWeight;
+        lWtA = nodeA.tabWeight;
     }
 
-    const n = msaA[0].length,
-        m = msaB[0].length,
-        tbM = new Uint8Array(n * (m + 1));
-    let Match = [],
-        Delete = [],
-        alignement = [],
-        match = 0,
-        gapOpenA = 0,
-        gapOpenB = 0,
-        gapExtendA = 0,
-        gapExtendB = 0,
-        tb = 0,
-        lastInsert = 0,
-        prevLastInsert = 0,
-        M0 = 0,
-        prevMatch = 0,
-        prevDelete = 0,
-        deletej_1 = 0,
-        inserti_1 = 0,
-        profAGapOP = 0,
-        profAGapCP = 0,
-        profAAAScores = [];
+    const n = lMsaA[0].length,
+        m = lMsaB[0].length,
+        tbM = new Uint8Array((n + 1) * (m + 1));
 
-    const _params = getAlignmentParameters();
+    let lMatchArr = [],
+        lDelArr = [],
+        lAlignment: string[] = [],
+        lMatch      = 0.0,
+        lGapOpenA   = 0.0,
+        lGapOpenB   = 0.0,
+        lGapExtendA = 0.0,
+        lGapExtendB = 0.0,
+        tb = 0|0,
+        lLastInsert = 0.0,
+        lPrevLastInsert = 0,
+        lPrevMatch  = 0.0,
+        lPrevDelete = 0.0,
+        lDeletej_1  = 0.0,
+        lInserti_1  = 0.0,
+        lProfAGapOP = 0.0,
+        lProfAGapCP = 0.0,
+        lProfAAAScores = [],
+        kmax = 0,
+        k = 0;
 
-    var gapOP = _params.gapOP;
+    const params = getAlignmentParameters();
+
+    const GAP_OPEN = params.gapOP;
+    const GAP_START_FACTOR = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP ? 1 : 2;
+    const GAP_END_FACTOR   = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP ? 1 : 2;
 
     //convert to profile
-    var profB = profileFromMSA(msaB, gapOP, wB, opt);
-    var profA = profileFromMSA(msaA, gapOP, wA, opt);
+    const profB = profileFromMSA(lMsaB, GAP_OPEN, lWtB, opt);
+    const profA = profileFromMSA(lMsaA, GAP_OPEN, lWtA, opt);
 
-    var profBGapOPTab = [],
+    const profBGapOPTab = [],
         profBGapCPTab = [];
 
     for (var i = 0; i < profB.length; i++) {
         profBGapOPTab.push(profB[i].m_ScoreGapOpen);
         profBGapCPTab.push(profB[i].m_ScoreGapClose);
     }
-    /*var profBWCountsTab = [];
-    for (var i = 0; i < profB.length; i++) {
-        profBWCountsTab.push(profB[i].m_wCounts);
-    }*/
-    //remplissage de la première ligne et de la première colonne de la matrice
-    //INITIALISATION
-    Match[0] = 0; //_utils.sumOfPairsScorePP(profA[0], profB[0]);
-    Delete[0] = -Infinity;
+
+
+    //INITIALIZATION of DP vectors
+    lMatchArr[0] = 0;
+    lDelArr[0] = -Infinity;
     for (var j = 1; j <= m; j++) {
-        Match[j] = profBGapOPTab[0] + profBGapCPTab[j - 1] / 2;
-        Delete[j] = -Infinity;
+        lMatchArr[j] = profBGapOPTab[0] + profBGapCPTab[j - 1] / GAP_START_FACTOR;
+        lDelArr[j] = -Infinity;
     }
 
-    M0 = profA[0].m_ScoreGapOpen;
-    //remplissage des matrices
-    //RECURSION
+    const M0 = profA[0].m_ScoreGapOpen;
+
+    //Main DP routine
+
     for (i = 1; i <= n; i++) {
-        profAAAScores = profA[i - 1].m_AAScores;
-        profAGapOP = profA[i - 1].m_ScoreGapOpen;
-        profAGapCP = profA[i - 1].m_ScoreGapClose;
+        lProfAAAScores = profA[i - 1].m_AAScores;
+        lProfAGapOP = profA[i - 1].m_ScoreGapOpen;
+        lProfAGapCP = profA[i - 1].m_ScoreGapClose;
 
         //M0 += profAGapEP / 2;
 
-        prevMatch = M0 + profAGapCP / 2;
-        lastInsert = -Infinity;
-        Delete[0] = profA[0].m_ScoreGapOpen;
+        lPrevMatch = M0 + lProfAGapCP / GAP_START_FACTOR;
+        lLastInsert = -Infinity;
+        lDelArr[0] = profA[0].m_ScoreGapOpen;
 
         for (j = 1; j <= m; j++) {
-            tb = 0;
+            tb = TRACE_BACK.MATCH;
 
             //Delete i,j score computation
-            gapOpenA = Match[j] + profAGapOP; //
-            gapExtendA = prevDelete = Delete[j];
-            if (j === m) {
-                gapOpenA -= profAGapOP / 2;
+            lGapOpenA = lMatchArr[j] + lProfAGapOP; //
+            lGapExtendA = lPrevDelete = lDelArr[j];
+            if (j === m && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+                lGapOpenA -= lProfAGapOP / 2;
             }
 
-            if (gapOpenA >= gapExtendA) {
-                Delete[j] = gapOpenA;
+            if (lGapOpenA >= lGapExtendA) {
+                lDelArr[j] = lGapOpenA;
             } else {
                 //Delete[j] = gapExtendA;
-                tb += 1;
+                tb += TRACE_BACK.DEL;
             }
 
             //Insert i,j score computation
-            gapOpenB = prevMatch + profBGapOPTab[j - 1];
-            gapExtendB = prevLastInsert = lastInsert;
-            if (i === n) {
-                gapOpenB -= profBGapOPTab[j - 1] / 2;
+            lGapOpenB = lPrevMatch + profBGapOPTab[j - 1];
+            lGapExtendB = lPrevLastInsert = lLastInsert;
+            if (i === n && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+                lGapOpenB -= profBGapOPTab[j - 1] / 2;
             }
 
-            if (gapOpenB >= gapExtendB) {
-                lastInsert = gapOpenB;
+            if (lGapOpenB >= lGapExtendB) {
+                lLastInsert = lGapOpenB;
             } else {
                 //lastInsert = gapExtendB;
-                tb += 2;
+                tb += TRACE_BACK.INS;
             }
 
             //Match i,j score computation
-            match = Match[j - 1];
-            var kmax = profB[j - 1].m_uResidueGroup,
-                k = 0;
+            // Note: could be a separate function, but runs faster when inlined
+            lMatch = lMatchArr[j - 1];
+            kmax = profB[j - 1].m_uResidueGroup;
+            k = 0;
             while (k < kmax) {
                 var resProfNo = profB[j - 1].m_uSortOrder[k];
-                match += profB[j - 1].m_wCounts[resProfNo] * profAAAScores[resProfNo];
+                lMatch += profB[j - 1].m_wCounts[resProfNo] * lProfAAAScores[resProfNo];
                 k++;
             }
 
             //match = Match[j - 1] + _utils.sumOfPairsScorePP3(profAAAScores, profB[j - 1]);
-            deletej_1 = Delete[j] + profAGapCP;
-            inserti_1 = prevLastInsert + profBGapCPTab[j - 1];
+            lDeletej_1 = lDelArr[j] + lProfAGapCP;
+            lInserti_1 = lPrevLastInsert + profBGapCPTab[j - 1];
 
-            if (j === 1) { //terminal penalties are halved
-                deletej_1 -= profAGapCP / 2;
+            if (j === 1 && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) { //terminal penalties are halved
+                lDeletej_1 -= lProfAGapCP / 2;
             }
-            if (i === 1) {
-                inserti_1 -= profBGapCPTab[0] / 2;
-            }
-            if ((j === m) && (i === n)) {
-                deletej_1 -= profAGapCP / 2;
-                inserti_1 -= profBGapCPTab[m - 1] / 2;
+            if ((j === m) && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+                lDeletej_1 -= lProfAGapCP / 2;
+                lInserti_1 -= profBGapCPTab[m - 1] / 2;
             }
 
-            Match[j - 1] = prevMatch;
+            lMatchArr[j - 1] = lPrevMatch;
 
-            if (match >= inserti_1) {
-                if (match >= deletej_1) { //match is optimal
-                    prevMatch = match;
+            if (lMatch >= lInserti_1) {
+                if (lMatch >= lDeletej_1) { //match is optimal
+                    lPrevMatch = lMatch;
                 } else { //delete is optimal
-                    prevMatch = deletej_1;
-                    tb += 4;
+                    lPrevMatch = lDeletej_1;
+                    tb += TRACE_BACK.MATCH2DEL;
                 }
 
             } else {
-                if (inserti_1 >= deletej_1) { //insert is optimal
-                    prevMatch = inserti_1;
-                    tb += 8;
+                if (lInserti_1 >= lDeletej_1) { //insert is optimal
+                    lPrevMatch = lInserti_1;
+                    tb += TRACE_BACK.MATCH2INS;
                 } else { //delete is optimal
-                    prevMatch = deletej_1;
-                    tb += 4;
+                    lPrevMatch = lDeletej_1;
+                    tb += TRACE_BACK.MATCH2DEL;
                 }
             }
             tbM[i * m + j] = tb;
         }
-        Match[m] = prevMatch;
+        lMatchArr[m] = lPrevMatch;
     }
-    var score = Math.max(match, lastInsert, Delete[j - 1]);
+    const score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
 
     //traceback
     i = n;
     j = m;
     k = 0;
-    var indice = n * m,
-        k = 0,
-        p = 0;
-    alignement = lInverted ? msaB.concat(msaA) : msaA.concat(msaB);
+    let idx = n * m;
 
-    var matriceActive = (tb & 12) >> 2,
+    lAlignment = lInverted ? lMsaB.concat(lMsaA) : lMsaA.concat(lMsaB);
+
+    let currentMatrix = (tb & 12) >> 2,
         value = 0;
     while ((i > 0) && (j > 0)) {
-        indice = i * m + j;
-        if (matriceActive === 0) {
-            value = tbM[indice] >> 2;
+        idx = i * m + j;
+        if (currentMatrix === 0) {
+            value = tbM[idx] >> 2;
             if (value === 0) {
                 i--;
                 j--;
             }
         } else {
-            if (matriceActive === 2) {
-                for (k = 0; k < msaA.length; k++) {
-                    alignement[k] = alignement[k].substring(0, i) + '-' + alignement[k].substring(i);
+            if (currentMatrix === 2) {
+                for (k = 0; k < lMsaA.length; k++) {
+                    lAlignment[k] = lAlignment[k].substring(0, i) + '-' + lAlignment[k].substring(i);
                 }
-                value = tbM[indice] & 2;
+                value = tbM[idx] & 2;
                 j--;
             } else {
-                for (k = msaA.length; k < alignement.length; k++) {
-                    alignement[k] = alignement[k].substring(0, j) + '-' + alignement[k].substring(j);
+                for (k = lMsaA.length; k < lAlignment.length; k++) {
+                    lAlignment[k] = lAlignment[k].substring(0, j) + '-' + lAlignment[k].substring(j);
                 }
-                value = tbM[indice] & 1;
+                value = tbM[idx] & 1;
                 i--;
             }
         }
-        matriceActive = value;
+        currentMatrix = value;
     }
-    //fin des profils par ajout direct de la fin de séquence
+
+    //finalize alignments
     let lPadding: string;
     if (j === 0) {
         lPadding = '-'.repeat(i);
-        for (k = msaA.length; k < alignement.length; k++) {
-            alignement[k] = lPadding + alignement[k];
+        for (k = lMsaA.length; k < lAlignment.length; k++) {
+            lAlignment[k] = lPadding + lAlignment[k];
         }
     } else { //i==0
         lPadding = '-'.repeat(j);
-        for (k = 0; k < msaA.length; k++) {
-            alignement[k] = lPadding + alignement[k];
+        for (k = 0; k < lMsaA.length; k++) {
+            lAlignment[k] = lPadding + lAlignment[k];
         }
     }
 
     return {
-        alignment: alignement,
+        alignment: lAlignment,
         score: score
     };
 }
