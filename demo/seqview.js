@@ -42,7 +42,7 @@ var SeqView = (function () {
          * ajoute au conteneur :
          * - un panneau pour les titres (défilement vertical)
          * - un panneau pour les graduations (défilement horizontal)
-         * - un panneau pour les séquences (défilement horizontal et vertical) 
+         * - un panneau pour les séquences (défilement horizontal et vertical)
          */
         var $conteneur = $('<div class="view-seq-conteneur" style=""></div>').appendTo(this.selector),
             $gauche = $('<div style="position: absolute; top:0; left:0; bottom:0; overflow: hidden; width:10em;"></div>').appendTo($conteneur),
@@ -76,7 +76,7 @@ var SeqView = (function () {
     };
 
     /*
-     * méthode appelée : 
+     * méthode appelée :
      * - à chaque redimensionnement
      * - après chaque ajout ou suppression de séquence
      */
@@ -225,7 +225,7 @@ var SeqView = (function () {
             this.afficheGraduations(numResDeb);
         }
 
-        /*if (this.highlight.displayed) 
+        /*if (this.highlight.displayed)
         		this.highlight.show(numResDeb,numResDeb+this.nbRes3Affichables);
         */
         this.offsetX = numResDeb;
@@ -352,7 +352,7 @@ var SeqView = (function () {
                 });
             }
 
-            if (this.x.toString() == x.toString()) { //a-t-on cliqué sur une colonne déjà mise en valeur ? 
+            if (this.x.toString() == x.toString()) { //a-t-on cliqué sur une colonne déjà mise en valeur ?
                 if (this.displayed) {
                     this.displayed = false;
                     this.hide();
@@ -492,19 +492,19 @@ var SeqView = (function () {
                         color: '#ffffb3'
 					}, {
                         res: 'a',
-                        color: 'firebrick'
+                        color: '#fb8072'
 					}, {
                         res: 't',
-                        color: 'steelblue'
+                        color: '#80b1d3'
 					}, {
                         res: 'c',
-                        color: 'gold'
+                        color: '#ffffb3'
 					}, {
                         res: 'g',
-                        color: 'chartreuse'
+                        color: '#b3de69'
 					}, {
                         res: 'u',
-                        color: 'slateblue'
+                        color: '#bebada'
 					}
 				];
                 for (var i = 0, imax = colorScheme.length; i < imax; i++) {
@@ -873,7 +873,7 @@ var SeqView = (function () {
 
     /**
      * Objet feuille de styles gérant l'ajout ou la suppression des styles
-     * Cet objet peut être créé dans un objet panneau de séquences pour gérer 
+     * Cet objet peut être créé dans un objet panneau de séquences pour gérer
      * la surbrillance, les colorations par résidus, etc...
      */
     su.StyleSheet = function () {
