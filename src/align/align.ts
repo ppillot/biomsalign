@@ -688,7 +688,7 @@ export function MSAMSAAlignment(
     k = 0;
     let idx = n * m;
 
-    lAlignment = lInverted ? lMsaB.concat(lMsaA) : lMsaA.concat(lMsaB);
+    lAlignment = lMsaA.concat(lMsaB);
 
     let currentMatrix = (tb & 12) >> 2,
         value = 0;
@@ -731,6 +731,11 @@ export function MSAMSAAlignment(
             lAlignment[k] = lPadding + lAlignment[k];
         }
     }
+
+    if (lInverted) lAlignment = [
+        ...lAlignment.slice(lMsaA.length),
+        ...lAlignment.slice(0, lMsaA.length)
+    ];
 
     return {
         alignment: lAlignment,
