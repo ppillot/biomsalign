@@ -382,10 +382,10 @@ export function MSASeqAlignment(
 
             // lPrevMatch is a scalar, used to compute on the same column (iterations
             // over j) the gap open penalty
-        lPrevMatch = GAP_START_CORRECTION_B / 2;
+        lPrevMatch = GAP_START_CORRECTION_B;
         lLastInsert = -Infinity;
         lDelArr[0] = profA[0].m_ScoreGapOpen;
-        lPrevLastInsert = GAP_END_CORRECTION_B / 2;
+        lPrevLastInsert = GAP_END_CORRECTION_B;
 
         for (let j = 1; j <= lSeqBLen; j++) {
             tb = TRACE_BACK.MATCH;
@@ -408,7 +408,7 @@ export function MSASeqAlignment(
             lGapOpenB = lPrevMatch + GAP_OPEN_B;
             lGapExtendB = lPrevLastInsert = lLastInsert;
             if (i === lProfALen) {
-                lGapOpenB += GAP_END_CORRECTION_B / 2;
+                lGapOpenB += GAP_END_CORRECTION_B;
             }
 
             if (lGapOpenB >= lGapExtendB) {
@@ -424,7 +424,7 @@ export function MSASeqAlignment(
             lMatch = lMatchArr[j - 1] + lProfASScores[sB[j - 1]];
 
             if (j === lSeqBLen) {
-                lInserti_1 += GAP_END_CORRECTION_B / 2;
+                lInserti_1 += GAP_END_CORRECTION_B;
             }
 
             lMatchArr[j - 1] = lPrevMatch;
