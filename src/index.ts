@@ -10,7 +10,7 @@ import {
     getSequenceType,
     TSequence,
 } from './sequence/sequence';
-import { setSeqType, DEBUG, SEQUENCE_TYPE, setAlignmentParameters } from './align/params';
+import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters } from './align/params';
 import { pairwiseAlignment } from './align/align';
 import { progressiveAlignment } from "./align/progressive.alignment";
 import Log from './utils/logger';
@@ -67,18 +67,17 @@ export class BioMSA {
 
             if (DEBUG) Log.add('Prepared sequences');
 
-            setSeqType(this.sequences[0].type);
-            setAlignmentParameters();
+            const lParam = getAlignmentParameters(this.sequences[0].type);
 
             if (DEBUG) Log.add('Get sequences type');
 
             if (this.sequences.length == 2) {
                 if (Math.max(this.sequences[0].rawSeq.length, this.sequences[1].rawSeq.length) > 1600) {
-                    let lAlignment = noalignPair(this.sequences[0], this.sequences[1]);
+                    let lAlignment = noalignPair(this.sequences[0], this.sequences[1], lParam);
                     if (DEBUG) Log.summary();
                     return resolve(lAlignment);
                 }
-                let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1]);
+                let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
 
                 if (DEBUG) Log.summary();
 
@@ -86,7 +85,7 @@ export class BioMSA {
 
                 return resolve(lResult.alignment);
             } else {
-                let lResult = progressiveAlignment(this.sequences);
+                let lResult = progressiveAlignment(this.sequences, lParam);
 
                 if (DEBUG) Log.summary();
 

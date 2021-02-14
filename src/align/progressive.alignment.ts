@@ -12,7 +12,7 @@
  *
  */
 
-import { DEBUG } from "./params";
+import { DEBUG, TAlignmentParam } from "./params";
 import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "../sequence/sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights,
     compareTrees } from "../sequence/tree";
@@ -21,7 +21,7 @@ import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align";
 
 
 
-export function progressiveAlignment(seq: TSequence[]) {
+export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) {
 
     const treeAlign = (node: InternalNode, tabWeight: number[]) => {
 
@@ -43,7 +43,7 @@ export function progressiveAlignment(seq: TSequence[]) {
         // Now nodeA and nodeB are either leaf or msa, we can align them
         if (isLeafNode(nodeA)) { //A is a single sequence
             if (isLeafNode(nodeB)) { //B is a single sequence
-                result = pairwiseAlignment(nodeA.seq, nodeB.seq);
+                result = pairwiseAlignment(nodeA.seq, nodeB.seq, pParam);
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
@@ -51,7 +51,7 @@ export function progressiveAlignment(seq: TSequence[]) {
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
-                result = MSASeqAlignment(nodeB, nodeA);
+                result = MSASeqAlignment(nodeB, nodeA, pParam);
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
@@ -61,7 +61,7 @@ export function progressiveAlignment(seq: TSequence[]) {
             nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
             nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
 
-            result = MSAMSAAlignment(nodeA, nodeB);
+            result = MSAMSAAlignment(nodeA, nodeB, pParam);
 
             if (DEBUG)
                 Log.add(`MSA ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);

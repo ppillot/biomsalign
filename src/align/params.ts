@@ -12,14 +12,6 @@ export enum SEQUENCE_TYPE {
 
 export const DEBUG = true;
 
-let typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.PROTEIN;
-
-let scoringMatrix: number[][] = [];
-
-let gapOP = 0;
-
-let gapEP = 0;
-
 const BLOSUM62 = {
     matrix: [
         //    A   C   D   E   F   G   H   I   K   L   M   N   P   Q   R   S   T   V   W   Y
@@ -104,37 +96,19 @@ function addCenter(matrix: number[][], center: number) {
     return matrix.map((row) => row.map((val) => val + center));
 }
 
-type AlignParam = {
-    gapOpen: number,
-    gapExtend: number
-}
+export type TAlignmentParam = ReturnType<typeof getAlignmentParameters>
 
-export function setAlignmentParameters(p?: Partial<AlignParam>) {
-    var m;
+export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: any) {
+    const m = (pTypeSeq === SEQUENCE_TYPE.PROTEIN) ? VTML240 : BLASTZ;
 
-    switch (typeSeq) {
-        case SEQUENCE_TYPE.PROTEIN:
-            m = VTML240;
-            break;
-        default:
-            m = BLASTZ;
-            break;
-    }
-
-    scoringMatrix = addCenter(
+    const scoringMatrix = addCenter(
         m.matrix,
-        p?.gapExtend ? -p.gapExtend * 2 : m.center
+        opt?.gapExtend ? -opt.gapExtend * 2 : m.center
     );
-    gapOP = m.gapOP;
-}
+    const gapOP = m.gapOP;
 
-export function setSeqType(type: SEQUENCE_TYPE) {
-    typeSeq = type;
-}
-
-export function getAlignmentParameters() {
     return {
-        type: typeSeq,
+        type: pTypeSeq,
         scoringMatrix,
         gapOP,
     };

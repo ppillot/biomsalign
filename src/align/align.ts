@@ -11,7 +11,7 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import { getAlignmentParameters } from "./params";
+import { TAlignmentParam } from "./params";
 import { profileFromMSA } from "../sequence/profile";
 import { TSequence } from "../sequence/sequence";
 import { InternalNode, LeafNode } from "../sequence/tree";
@@ -48,9 +48,9 @@ export const enum ALIGNOPT {
 export function pairwiseAlignment (
     seqA: TSequence,
     seqB: TSequence,
+    params: TAlignmentParam,
     opt = 0
 ) {
-    const params = getAlignmentParameters();
 
     const lSeqALen = seqA.rawSeq.length;
     const lSeqBLen = seqB.rawSeq.length;
@@ -305,6 +305,7 @@ export function pairwiseAlignment (
 export function MSASeqAlignment(
     nodeA: InternalNode,
     nodeB: LeafNode,
+    params: TAlignmentParam,
     opt = 0
 ) {
 
@@ -339,8 +340,6 @@ export function MSASeqAlignment(
         /** Position specific substitution scores of profile A at pos i-1 */
         lProfASScores = [];
 
-    const params = getAlignmentParameters();
-
     const GAP_OPEN    = params.gapOP;
     const GAP_OPEN_B  = GAP_OPEN / 2;
     const GAP_CLOSE_B = GAP_OPEN / 2;
@@ -357,7 +356,7 @@ export function MSASeqAlignment(
     const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight, opt);
+    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight, params, opt);
 
     // Note that for performance reason, the outer loop iterates on profile A.
     // This allows caching the values for substitution scores used in the inner
@@ -513,6 +512,7 @@ export function MSASeqAlignment(
 export function MSAMSAAlignment(
     nodeA: InternalNode,
     nodeB: InternalNode,
+    params: TAlignmentParam,
     opt = 0
 ) {
 
@@ -561,15 +561,13 @@ export function MSAMSAAlignment(
         kmax = 0,
         k = 0;
 
-    const params = getAlignmentParameters();
-
     const GAP_OPEN = params.gapOP;
     const GAP_START_FACTOR = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP ? 1 : 2;
     const GAP_END_FACTOR   = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP ? 1 : 2;
 
     //convert to profile
-    const profB = profileFromMSA(lMsaB, GAP_OPEN, lWtB, opt);
-    const profA = profileFromMSA(lMsaA, GAP_OPEN, lWtA, opt);
+    const profB = profileFromMSA(lMsaB, GAP_OPEN, lWtB, params, opt);
+    const profA = profileFromMSA(lMsaA, GAP_OPEN, lWtA, params, opt);
 
     const profBGapOPTab = [],
         profBGapCPTab = [];

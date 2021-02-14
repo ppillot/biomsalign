@@ -52,7 +52,7 @@
 
 import { TSequence } from "../sequence/sequence";
 import { DEQueue } from '../utils/queue';
-import { DEBUG } from "./params";
+import { DEBUG, TAlignmentParam } from "./params";
 import Log from "../utils/logger";
 import { hammingWeight } from "../utils/bitarray";
 import { ALIGNOPT, pairwiseAlignment } from "./align";
@@ -181,7 +181,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 }
 
 
-export function noalignPair(seqA: TSequence, seqB: TSequence) {
+export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlignmentParam) {
 
     const KSIZE = 8;    // fits in 16bits
     const WSIZE = 16;
@@ -431,7 +431,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence) {
                 type: seqB.type,
                 compressedSeq: new Uint8Array(0),
                 encodedSeq: seqB.encodedSeq.slice(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
-            }, ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
+            }, pAlignParam,
+            ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
             lSeqA += lResult.alignment[0];
             lSeqB += lResult.alignment[1];

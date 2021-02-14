@@ -6,7 +6,7 @@
  */
 
 import { ALIGNOPT } from '../align/align';
-import { getAlignmentParameters, SEQUENCE_TYPE } from '../align/params';
+import { SEQUENCE_TYPE, TAlignmentParam } from '../align/params';
 import { aaToNum, nucToNum } from './sequence';
 
 export function sumOfPairsScorePP(profA: Profile, profB: Profile) {
@@ -99,7 +99,8 @@ class ProfPos {
  * @param {number}  pGapO: gap opening penalty
  * @param {number[]} pWeights : weight of each sequence
  */
-export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[], opt: number = 0) {
+export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[], params: TAlignmentParam,
+    opt: number = 0) {
     /** alignment length (columns count) */
     const l = pMSA[0].length;
 
@@ -107,8 +108,6 @@ export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[
         na = 0,  // amino acid # (in lexical order)
         nbResMax = 0,
         tabCodeResNum: Uint8Array;
-
-    const params = getAlignmentParameters();
 
     var prof: ProfPos[] = new Array(l); // profile
     if (params.type === SEQUENCE_TYPE.NUCLEIC) {
