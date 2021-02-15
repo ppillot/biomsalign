@@ -56,6 +56,7 @@ import { DEBUG, TAlignmentParam } from "./params";
 import Log from "../utils/logger";
 import { hammingWeight } from "../utils/bitarray";
 import { ALIGNOPT, pairwiseAlignment } from "./align";
+import { epath2estring, EPATH_2_STRING, estringCat, estringLength } from "../utils/estring";
 
 type TRange = {
     diagId: number,
@@ -398,25 +399,26 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
     }
 
     // Make the alignment from the diagonals and fill the gaps
-    let lSeqA = '';
-    let lSeqB = '';
     let lDiag: TRange = lExtDiagList[0];
+    const lEpathA: number[] = [];
+    const lEpathB: number[] = [];
     for (let i = 0; i < lExtDiagList.length; i++) {
         lDiag = lExtDiagList[i];
-        lSeqA += seqA.rawSeq.substring(lDiag.begin, lDiag.end);
-        lSeqB += seqB.rawSeq.substring(lDiag.begin - lDiag.diagId, lDiag.end - lDiag.diagId);
+        lEpathA.push(lDiag.end - lDiag.begin);
+        lEpathB.push(lDiag.end - lDiag.begin);
 
         let lMis = lMissingSegments[i];
         if (lMis) {
             // special case: begin === end
             if (lMis.begin === lMis.end) {
-                lSeqA += '-'.repeat(Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lSeqB += seqB.rawSeq.substring(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
+                lEpathA.push(-Math.abs(lMis.endDiagId - lMis.beginDiagId));
+                lEpathB.push(lMis.end - lMis.begin);
                 continue;
             }
+
             if (lMis.begin - lMis.beginDiagId === lMis.end - lMis.endDiagId) {
-                lSeqB += '-'.repeat(Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lSeqA += seqA.rawSeq.substring(lMis.begin, lMis.end);
+                lEpathB.push(- Math.abs(lMis.endDiagId - lMis.beginDiagId));
+                lEpathB.push(lMis.end - lMis.begin);
                 continue;
             }
 
@@ -434,8 +436,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
             }, pAlignParam,
             ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
-            lSeqA += lResult.alignment[0];
-            lSeqB += lResult.alignment[1];
+            lEpathA.push(...lResult.estringA);
+            lEpathB.push(...lResult.estringB);
         }
 
     }
@@ -445,35 +447,27 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
         // For now, just append the missing part. Ultimately, assess, depending
         // on the tail length if a SW alignmnent is deemed necessary.
 
-    if (lDiag.end < seqA.rawSeq.length
-        || lDiag.end - lDiag.diagId < seqB.rawSeq.length
-    ) {
-            // Note: in JS substring() overflow returns an empty string.
-
-        let lPieceA = seqA.rawSeq.substring(lDiag.end);
-        let lPieceB = seqB.rawSeq.substring(lDiag.end - lDiag.diagId);
-        lSeqA += lPieceA;
-        lSeqB += lPieceB;
-
-        if (lPieceA.length !== lPieceB.length) {
-            const lTail = '-'.repeat(Math.abs(lPieceB.length - lPieceA.length));
-            if (lPieceB.length < lPieceA.length) {
-                lSeqB += lTail;
-            } else {
-                lSeqA += lTail;
-            }
-        }
+    if (lDiag.end < seqA.encodedSeq.length) {
+        lEpathA.push(seqA.encodedSeq.length - lDiag.end + 1);
     }
+    if (lDiag.end - lDiag.diagId < seqB.encodedSeq.length) {
+        lEpathB.push(seqB.encodedSeq.length - lDiag.end + 1 + lDiag.diagId);
+    }
+
+    let lEstringA = epath2estring(lEpathA, EPATH_2_STRING.NO_REVERSE);
+    let lEstringB = epath2estring(lEpathB, EPATH_2_STRING.NO_REVERSE);
+
+    const lEszA = estringLength(lEstringA);
+    const lEszB = estringLength(lEstringB);
+    if (lEszA > lEszB) lEstringB = estringCat(lEstringB, [lEszB - lEszA]);
+    else if (lEszA < lEszB) lEstringA = estringCat(lEstringA, [lEszA - lEszB]);
 
     if (DEBUG) {
         Log.add('Fill between diagonals');
-        let lMatches = 0;
-        for (let i = 0; i < lSeqA.length; i++) { if (lSeqB[i] === lSeqA[i]) lMatches ++;}
-        console.log('Matches:', lMatches);
     }
 
     // TODO: Finalize alignment here
-    return [lSeqA, lSeqB];
+    return [lEstringA, lEstringB];
 }
 
 /**

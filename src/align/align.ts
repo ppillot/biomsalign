@@ -15,6 +15,7 @@ import { TAlignmentParam } from "./params";
 import { profileFromMSA } from "../sequence/profile";
 import { TSequence } from "../sequence/sequence";
 import { InternalNode, LeafNode } from "../sequence/tree";
+import { epath2estring } from "../utils/estring";
 
 /**
  * Trace back matrix transitions values
@@ -231,8 +232,8 @@ export function pairwiseAlignment (
     let i = lSeqALen;
     let j = lSeqBLen;
     var lIdx = lSeqALen * lSeqBLen + lSeqBLen;
-    const lSeqA: string[] = [];
-    const lSeqB: string[] = [];
+    const lEpathA: number[] = [];
+    const lEpathB: number[] = [];
 
     // current matrix is either M (0), D (1) or I(2). Let's have a look
     // at the last value to see if the optimum is coming from DEL
@@ -251,45 +252,43 @@ export function pairwiseAlignment (
             if (val === 0) { //-->Match
                 i--;
                 j--;
-                lSeqA.push(seqA.rawSeq[i]);
-                lSeqB.push(seqB.rawSeq[j]);
+                lEpathA.push(1);
+                lEpathB.push(1);
             }
             // other cases --> run the loop once more to enter the
             // following block.
         } else {
             if (lCurrentMatrix === 2) { //-->Ins
+                lEpathA.push(-1);
+                lEpathB.push(1);
                 j--;
-                lSeqA.push('-');
-                lSeqB.push(seqB.rawSeq[j]);
                 val = val & 2;
             } else { //1 --> Del
                 i--;
-                lSeqA.push(seqA.rawSeq[i]);
-                lSeqB.push('-');
+                lEpathA.push(1);
+                lEpathB.push(-1);
                 val = val & 1;
             }
         }
         lCurrentMatrix = val;
     }
 
-    let lAlignment = [
-        lSeqA.reverse().join(''),
-        lSeqB.reverse().join('')
-    ];
-
     // if (DEBUG) Log.add('End traceback');
 
     // Finish sequences edit by appending the remaining symbols
     if (i > 0) {
-        lAlignment[1] = '-'.repeat(i) + lAlignment[1];
-        lAlignment[0] = seqA.rawSeq.substring(0, i) + lAlignment[0];
+        lEpathA.push(i);
+        lEpathB.push(-i);
     } else if (j > 0) {
-        lAlignment[0] = '-'.repeat(j) + lAlignment[0];
-        lAlignment[1] = seqB.rawSeq.substring(0, j) + lAlignment[1];
+        lEpathA.push(-j)
+        lEpathB.push(j);
     }
 
+
+
     return {
-        alignment: lAlignment,
+        estringA: epath2estring(lEpathA),
+        estringB: epath2estring(lEpathB),
         score: score
     };
 };

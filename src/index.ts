@@ -15,6 +15,7 @@ import { pairwiseAlignment } from './align/align';
 import { progressiveAlignment } from "./align/progressive.alignment";
 import Log from './utils/logger';
 import { noalignPair } from './align/noalign';
+import { estringTransform } from './utils/estring';
 
 export class BioMSA {
     private sequences: TSequence[];
@@ -72,18 +73,22 @@ export class BioMSA {
             if (DEBUG) Log.add('Get sequences type');
 
             if (this.sequences.length == 2) {
+                let lEStrings: number[][];
                 if (Math.max(this.sequences[0].rawSeq.length, this.sequences[1].rawSeq.length) > 1600) {
-                    let lAlignment = noalignPair(this.sequences[0], this.sequences[1], lParam);
-                    if (DEBUG) Log.summary();
-                    return resolve(lAlignment);
+                    lEStrings = noalignPair(this.sequences[0], this.sequences[1], lParam);
+                } else {
+                    let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
+                    lEStrings = [lResult.estringA, lResult.estringB];
                 }
-                let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
 
                 if (DEBUG) Log.summary();
 
+                let lAlignment = [
+                    estringTransform(this.sequences[0].rawSeq, lEStrings[0]),
+                    estringTransform(this.sequences[1].rawSeq, lEStrings[1])
+                ];
 
-
-                return resolve(lResult.alignment);
+                return resolve(lAlignment);
             } else {
                 let lResult = progressiveAlignment(this.sequences, lParam);
 

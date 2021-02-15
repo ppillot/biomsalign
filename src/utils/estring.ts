@@ -121,7 +121,11 @@ export function estringCat (estringA: number[], estringB: number[]) {
     return [...estringA, ...estringB];
 }
 
-export function epath2estring (epath: number[]): number[] {
+export const enum EPATH_2_STRING {
+    NO_REVERSE = 1
+};
+
+export function epath2estring (epath: number[], opt = 0): number[] {
     const lEstring: number[] = [];
 
     let lAcc = 0;
@@ -136,7 +140,20 @@ export function epath2estring (epath: number[]): number[] {
     }
     lEstring.push(lAcc);
     if (lEstring[0] === 0) lEstring.shift();
-    lEstring.reverse();
+
+        // Usually, the path comes from a traceback matrix and must be reversed
+
+    if (!(opt & EPATH_2_STRING.NO_REVERSE)) lEstring.reverse();
 
     return lEstring;
+}
+
+export function estringLength (estring: number[]): number {
+    let lSize = 0;
+    let lVal = 0;
+    for (let i = 0; i < estring.length; i++) {
+        lVal = estring[i];
+        lSize += lVal < 0 ? - lVal : lVal;
+    }
+    return lSize;
 }

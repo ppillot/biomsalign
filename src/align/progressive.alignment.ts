@@ -18,6 +18,7 @@ import { InternalNode, isLeafNode, makeTree, clustalWeights,
     compareTrees } from "../sequence/tree";
 import Log from '../utils/logger';
 import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align";
+import { estringTransform } from "../utils/estring";
 
 
 
@@ -43,7 +44,11 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
         // Now nodeA and nodeB are either leaf or msa, we can align them
         if (isLeafNode(nodeA)) { //A is a single sequence
             if (isLeafNode(nodeB)) { //B is a single sequence
-                result = pairwiseAlignment(nodeA.seq, nodeB.seq, pParam);
+                const lR = pairwiseAlignment(nodeA.seq, nodeB.seq, pParam);
+                result = { alignment: [
+                    estringTransform(nodeA.seq.rawSeq, lR.estringA),
+                    estringTransform(nodeB.seq.rawSeq, lR.estringB)
+                ], score: lR.score };
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
