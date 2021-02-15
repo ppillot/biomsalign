@@ -61,7 +61,7 @@ export function estringProduct (estringB: number[], estringA: number[]): number[
 
     // add new value in lSteps. Collapses tail value if they have same sign
     function pushOperator (val: number) {
-        if ((val ^ lSteps[lSteps.length - 1]) > 0) {    // same sign
+        if ((val ^ lSteps[lSteps.length - 1]) >= 0) {    // same sign
             lSteps[lSteps.length - 1] += val;
         } else {    // opposite sign: new item in array
             lSteps.push(val);
@@ -119,4 +119,24 @@ export function estringCat (estringA: number[], estringB: number[]) {
         return lRet;
     }
     return [...estringA, ...estringB];
+}
+
+export function epath2estring (epath: number[]): number[] {
+    const lEstring: number[] = [];
+
+    let lAcc = 0;
+    let lVal = 0;
+    for (let i = 0; i < epath.length; i++) {
+        lVal = epath[i];
+        if ((lVal ^ lAcc) >= 0) lAcc += lVal;
+        else {
+            lEstring.push(lAcc);
+            lAcc = lVal;
+        }
+    }
+    lEstring.push(lAcc);
+    if (lEstring[0] === 0) lEstring.shift();
+    lEstring.reverse();
+
+    return lEstring;
 }

@@ -1,4 +1,4 @@
-import { estringTransform, estringProduct, estringCat } from '../estring';
+import { estringTransform, estringProduct, estringCat, epath2estring } from '../estring';
 
 test('Transforms a string', () => {
     const lTxt = 'MQTIF';
@@ -28,4 +28,10 @@ test('Catenates estrings', () => {
     expect(lCat).toEqual([3,-1,8,-2,1]);
     lCat = estringCat(lEString1, lEString3);
     expect(lCat).toEqual([3,-1,3,-5,2]);
+});
+
+test('Builds estrings from edit paths', () => {
+    const lEpath = [-1, -1, -1, 1, 1, 1, -1, 1, 4];
+    let lEstring = epath2estring(lEpath);
+    expect(lEstring).toEqual([5, -1, 3, -3]);
 });
