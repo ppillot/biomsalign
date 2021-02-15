@@ -456,7 +456,7 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
         lSeqB += lPieceB;
 
         if (lPieceA.length !== lPieceB.length) {
-            const lTail = '-'.repeat(Math.abs(lPieceB.length - lPieceB.length));
+            const lTail = '-'.repeat(Math.abs(lPieceB.length - lPieceA.length));
             if (lPieceB.length < lPieceA.length) {
                 lSeqB += lTail;
             } else {
