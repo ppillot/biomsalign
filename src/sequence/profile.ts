@@ -58,7 +58,7 @@ export type Profile = {
     nbSeq: number;
 };
 /*
- * Définition de l'objet ProfPos()
+ * ProfPos definition ()
  */
 class ProfPos {
     m_bAllGaps = false;
@@ -99,7 +99,7 @@ class ProfPos {
  * @param {number}  pGapO: gap opening penalty
  * @param {number[]} pWeights : weight of each sequence
  */
-export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[], params: TAlignmentParam,
+export function profileFromMSA (pMSA: string[], pWeights: number[], params: TAlignmentParam,
     opt: number = 0) {
     /** alignment length (columns count) */
     const l = pMSA[0].length;
@@ -122,7 +122,7 @@ export function profileFromMSA (pMSA: string[], pGapO: number, pWeights: number[
     let w = 0, //sequence weight
         totalW = pWeights.reduce((a, b) =>  a + b, 0);
 
-    const lGapO = pGapO || params.gapOP;
+    const lGapO = params.gapOP;
 
     for (let col = 0; col < l; col++) {
         prof[col] = new ProfPos();

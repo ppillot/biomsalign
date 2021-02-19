@@ -355,7 +355,7 @@ export function MSASeqAlignment(
     const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    const profA = profileFromMSA(msaA, GAP_OPEN, nodeA.tabWeight, params, opt);
+    const profA = profileFromMSA(msaA, nodeA.tabWeight, params, opt);
 
     // Note that for performance reason, the outer loop iterates on profile A.
     // This allows caching the values for substitution scores used in the inner
@@ -565,8 +565,8 @@ export function MSAMSAAlignment(
     const GAP_END_FACTOR   = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP ? 1 : 2;
 
     //convert to profile
-    const profB = profileFromMSA(lMsaB, GAP_OPEN, lWtB, params, opt);
-    const profA = profileFromMSA(lMsaA, GAP_OPEN, lWtA, params, opt);
+    const profB = profileFromMSA(lMsaB, lWtB, params, opt);
+    const profA = profileFromMSA(lMsaA, lWtA, params, opt);
 
     const profBGapOPTab = [],
         profBGapCPTab = [];
