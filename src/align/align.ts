@@ -11,7 +11,7 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import { TAlignmentParam } from "./params";
+import { SEQUENCE_TYPE, TAlignmentParam } from "./params";
 import { profileFromMSA } from "../sequence/profile";
 import { TSequence } from "../sequence/sequence";
 import { InternalNode, LeafNode } from "../sequence/tree";
@@ -314,7 +314,8 @@ export function MSASeqAlignment(
         //wA = noeudA.weight, //probably unnecessary
         msaA = nodeA.msa,
         lSeqBLen = seqB.rawSeq.length,
-        lProfALen = msaA[0].length;
+        lProfALen = msaA[0].length,
+        ALPHA_SIZE = params.type === SEQUENCE_TYPE.NUCLEIC ? 4 : 20;
 
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
@@ -337,7 +338,7 @@ export function MSASeqAlignment(
         /** Position specific gap close penalty of profile A at pos i-1 */
         lProfAGapCP = 0.0,
         /** Position specific substitution scores of profile A at pos i-1 */
-        lProfASScores = [];
+        lProfASScores = new Float32Array(ALPHA_SIZE);
 
     const GAP_OPEN    = params.gapOP;
     const GAP_OPEN_B  = GAP_OPEN / 2;
@@ -374,15 +375,15 @@ export function MSASeqAlignment(
 
     for (let i = 1; i <= lProfALen; i++) {
 
-        lProfAGapOP = profA[i - 1].m_ScoreGapOpen;
-        lProfAGapCP = profA[i - 1].m_ScoreGapClose;
-        lProfASScores = profA[i - 1].m_AAScores;
+        lProfAGapOP = profA.m_ScoreGapOpen[i - 1];
+        lProfAGapCP = profA.m_ScoreGapClose[i - 1];
+        lProfASScores = profA.m_AAScores.subarray((i - 1) * ALPHA_SIZE, i * ALPHA_SIZE);
 
             // lPrevMatch is a scalar, used to compute on the same column (iterations
             // over j) the gap open penalty
         lPrevMatch = GAP_START_CORRECTION_B;
         lLastInsert = -Infinity;
-        lDelArr[0] = profA[0].m_ScoreGapOpen;
+        lDelArr[0] = profA.m_ScoreGapOpen[0];
         lPrevLastInsert = GAP_END_CORRECTION_B;
 
         for (let j = 1; j <= lSeqBLen; j++) {
@@ -537,7 +538,8 @@ export function MSAMSAAlignment(
 
     const n = lMsaA[0].length,
         m = lMsaB[0].length,
-        tbM = new Uint8Array((n + 1) * (m + 1));
+        tbM = new Uint8Array((n + 1) * (m + 1)),
+        ALPHA_SIZE = params.type === SEQUENCE_TYPE.NUCLEIC ? 4 : 20;
 
     let lMatchArr = [],
         lDelArr = [],
@@ -556,8 +558,13 @@ export function MSAMSAAlignment(
         lInserti_1  = 0.0,
         lProfAGapOP = 0.0,
         lProfAGapCP = 0.0,
-        lProfAAAScores = [],
+        lProfAAAScores = new Float32Array(ALPHA_SIZE),
+        lResList = new Uint8Array(ALPHA_SIZE),
+        lResProfNb = 0,
+        lOffset = 0,
         kmax = 0,
+        i = 0,
+        j = 0,
         k = 0;
 
     const GAP_OPEN = params.gapOP;
@@ -568,37 +575,30 @@ export function MSAMSAAlignment(
     const profB = profileFromMSA(lMsaB, lWtB, params, opt);
     const profA = profileFromMSA(lMsaA, lWtA, params, opt);
 
-    const profBGapOPTab = [],
-        profBGapCPTab = [];
-
-    for (var i = 0; i < profB.length; i++) {
-        profBGapOPTab.push(profB[i].m_ScoreGapOpen);
-        profBGapCPTab.push(profB[i].m_ScoreGapClose);
-    }
 
 
     //INITIALIZATION of DP vectors
     lMatchArr[0] = 0;
     lDelArr[0] = -Infinity;
-    for (var j = 1; j <= m; j++) {
-        lMatchArr[j] = profBGapOPTab[0] + profBGapCPTab[j - 1] / GAP_START_FACTOR;
+    for (j = 1; j <= m; j++) {
+        lMatchArr[j] = profB.m_ScoreGapOpen[0] + profB.m_ScoreGapClose[j - 1] / GAP_START_FACTOR;
         lDelArr[j] = -Infinity;
     }
 
-    const M0 = profA[0].m_ScoreGapOpen;
+    const M0 = profA.m_ScoreGapOpen[0];
 
     //Main DP routine
 
     for (i = 1; i <= n; i++) {
-        lProfAAAScores = profA[i - 1].m_AAScores;
-        lProfAGapOP = profA[i - 1].m_ScoreGapOpen;
-        lProfAGapCP = profA[i - 1].m_ScoreGapClose;
+        lProfAAAScores = profA.m_AAScores.subarray(ALPHA_SIZE * (i - 1), ALPHA_SIZE * i);
+        lProfAGapOP = profA.m_ScoreGapOpen[i - 1];
+        lProfAGapCP = profA.m_ScoreGapClose[i - 1];
 
         //M0 += profAGapEP / 2;
 
         lPrevMatch = M0 + lProfAGapCP / GAP_START_FACTOR;
         lLastInsert = -Infinity;
-        lDelArr[0] = profA[0].m_ScoreGapOpen;
+        lDelArr[0] = profA.m_ScoreGapOpen[0];
 
         for (j = 1; j <= m; j++) {
             tb = TRACE_BACK.MATCH;
@@ -618,10 +618,10 @@ export function MSAMSAAlignment(
             }
 
             //Insert i,j score computation
-            lGapOpenB = lPrevMatch + profBGapOPTab[j - 1];
+            lGapOpenB = lPrevMatch + profB.m_ScoreGapOpen[j - 1];
             lGapExtendB = lPrevLastInsert = lLastInsert;
             if (i === n && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
-                lGapOpenB -= profBGapOPTab[j - 1] / 2;
+                lGapOpenB -= profB.m_ScoreGapOpen[j - 1] / 2;
             }
 
             if (lGapOpenB >= lGapExtendB) {
@@ -634,24 +634,26 @@ export function MSAMSAAlignment(
             //Match i,j score computation
             // Note: could be a separate function, but runs faster when inlined
             lMatch = lMatchArr[j - 1];
-            kmax = profB[j - 1].m_uResidueGroup;
+            kmax = profB.m_uResidueGroup[j - 1];
             k = 0;
+            lOffset = (j - 1) * ALPHA_SIZE;
+            lResList = profB.m_uSortOrder.subarray(lOffset, lOffset + kmax )
             while (k < kmax) {
-                var resProfNo = profB[j - 1].m_uSortOrder[k];
-                lMatch += profB[j - 1].m_wCounts[resProfNo] * lProfAAAScores[resProfNo];
+                lResProfNb = lResList[k];
+                lMatch += profB.m_wCounts[lOffset + lResProfNb] * lProfAAAScores[lResProfNb];
                 k++;
             }
 
             //match = Match[j - 1] + _utils.sumOfPairsScorePP3(profAAAScores, profB[j - 1]);
             lDeletej_1 = lDelArr[j] + lProfAGapCP;
-            lInserti_1 = lPrevLastInsert + profBGapCPTab[j - 1];
+            lInserti_1 = lPrevLastInsert + profB.m_ScoreGapClose[j - 1];
 
             if (j === 1 && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) { //terminal penalties are halved
                 lDeletej_1 -= lProfAGapCP / 2;
             }
             if ((j === m) && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lDeletej_1 -= lProfAGapCP / 2;
-                lInserti_1 -= profBGapCPTab[m - 1] / 2;
+                lInserti_1 -= profB.m_ScoreGapClose[m - 1] / 2;
             }
 
             lMatchArr[j - 1] = lPrevMatch;
