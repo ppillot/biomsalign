@@ -314,8 +314,7 @@ export function MSASeqAlignment(
         //wA = noeudA.weight, //probably unnecessary
         msaA = nodeA.msa,
         lSeqBLen = seqB.rawSeq.length,
-        lProfALen = msaA[0].length,
-        ALPHA_SIZE = params.type === SEQUENCE_TYPE.NUCLEIC ? 4 : 20;
+        lProfALen = msaA[0].length;
 
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
@@ -338,7 +337,7 @@ export function MSASeqAlignment(
         /** Position specific gap close penalty of profile A at pos i-1 */
         lProfAGapCP = 0.0,
         /** Position specific substitution scores of profile A at pos i-1 */
-        lProfASScores = new Float32Array(ALPHA_SIZE);
+        lProfASScores = new Float32Array(params.abSize);
 
     const GAP_OPEN    = params.gapOP;
     const GAP_OPEN_B  = GAP_OPEN / 2;
@@ -377,7 +376,7 @@ export function MSASeqAlignment(
 
         lProfAGapOP = profA.m_ScoreGapOpen[i - 1];
         lProfAGapCP = profA.m_ScoreGapClose[i - 1];
-        lProfASScores = profA.m_AAScores.subarray((i - 1) * ALPHA_SIZE, i * ALPHA_SIZE);
+        lProfASScores = profA.m_AAScores.subarray((i - 1) * params.abSize, i * params.abSize);
 
             // lPrevMatch is a scalar, used to compute on the same column (iterations
             // over j) the gap open penalty
@@ -538,8 +537,7 @@ export function MSAMSAAlignment(
 
     const n = lMsaA[0].length,
         m = lMsaB[0].length,
-        tbM = new Uint8Array((n + 1) * (m + 1)),
-        ALPHA_SIZE = params.type === SEQUENCE_TYPE.NUCLEIC ? 4 : 20;
+        tbM = new Uint8Array((n + 1) * (m + 1));
 
     let lMatchArr = [],
         lDelArr = [],
@@ -558,8 +556,8 @@ export function MSAMSAAlignment(
         lInserti_1  = 0.0,
         lProfAGapOP = 0.0,
         lProfAGapCP = 0.0,
-        lProfAAAScores = new Float32Array(ALPHA_SIZE),
-        lResList = new Uint8Array(ALPHA_SIZE),
+        lProfAAAScores = new Float32Array(params.abSize),
+        lResList = new Uint8Array(params.abSize),
         lResProfNb = 0,
         lOffset = 0,
         kmax = 0,
@@ -590,7 +588,7 @@ export function MSAMSAAlignment(
     //Main DP routine
 
     for (i = 1; i <= n; i++) {
-        lProfAAAScores = profA.m_AAScores.subarray(ALPHA_SIZE * (i - 1), ALPHA_SIZE * i);
+        lProfAAAScores = profA.m_AAScores.subarray(params.abSize * (i - 1), params.abSize * i);
         lProfAGapOP = profA.m_ScoreGapOpen[i - 1];
         lProfAGapCP = profA.m_ScoreGapClose[i - 1];
 
@@ -636,7 +634,7 @@ export function MSAMSAAlignment(
             lMatch = lMatchArr[j - 1];
             kmax = profB.m_uResidueGroup[j - 1];
             k = 0;
-            lOffset = (j - 1) * ALPHA_SIZE;
+            lOffset = (j - 1) * params.abSize;
             lResList = profB.m_uSortOrder.subarray(lOffset, lOffset + kmax )
             while (k < kmax) {
                 lResProfNb = lResList[k];

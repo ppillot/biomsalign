@@ -111,5 +111,6 @@ export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: any) {
         type: pTypeSeq,
         scoringMatrix,
         gapOP,
+        abSize: (pTypeSeq === SEQUENCE_TYPE.PROTEIN) ? 20 : 4
     };
 }

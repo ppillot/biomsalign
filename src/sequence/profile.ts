@@ -183,17 +183,14 @@ export function profileFromMSA (pMSA: string[], pWeights: number[], params: TAli
 
     let aa = '', // amino acid name (1 letter code)
         na = 0,  // amino acid # (in lexical order)
-        nbResMax = 0,
         tabCodeResNum: Uint8Array;
     if (params.type === SEQUENCE_TYPE.NUCLEIC) {
-        nbResMax = 4;
         tabCodeResNum = nucToNum;
     } else {
-        nbResMax = 20;
         tabCodeResNum = aaToNum;
     }
 
-    const lProf = new ProfPos(l, nbResMax, pMSA.length);
+    const lProf = new ProfPos(l, params.abSize, pMSA.length);
 
     //uHydrophobicRunLength = 0, // hydrophobic window (to avoid introducing gaps within)
     let w = 0, //sequence weight
@@ -240,7 +237,7 @@ export function profileFromMSA (pMSA: string[], pWeights: number[], params: TAli
         let imax = lProx.m_uResidueGroup;
         let lSortOrder = lProx.m_uSortOrder;
         let lScore = 0, lResProfNb = 0;
-        for (let aaNum = 0; aaNum < nbResMax; aaNum++) {
+        for (let aaNum = 0; aaNum < params.abSize; aaNum++) {
             lScore = 0;
             for (let i = 0; i < imax; i++) {
                 lResProfNb = lSortOrder[i];
