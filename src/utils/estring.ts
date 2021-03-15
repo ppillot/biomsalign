@@ -157,3 +157,33 @@ export function estringLength (estring: number[]): number {
     }
     return lSize;
 }
+
+/**
+ * Convert an Edit string to a vector of indices. Negative estring values (in-
+ * dels) are encoded as -1. Positive values are encoded as an increasing sequence
+ * @example
+ * const estring = [2, -3, 2];
+ * estringToIdx(estring); // => [0, 1, -1, -1, -1, 2, 3]
+ * @param {number[]} estring
+ * @returns {number[]}
+ */
+export function estringToIdx (estring: number[]) {
+    const lIdx: number[] = [];
+    let idx = 0;
+    let val = 0;
+    for (let i = 0; i < estring.length; i ++) {
+        val = estring[i];
+        if (val < 0) {
+            for (let j = 0; j < -val; j ++) {
+                lIdx.push(-1);
+            }
+            continue;
+        }
+
+        for (let j = 0; j < val; j++) {
+            lIdx.push(idx);
+            idx++;
+        }
+    }
+    return lIdx;
+}
