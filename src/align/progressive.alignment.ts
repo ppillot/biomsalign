@@ -26,11 +26,12 @@ import { mergeProfiles } from "../sequence/profile";
 
 export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) {
 
+    // Recursive depth first tree based alignment
     const treeAlign = (node: InternalNode, tabWeight: number[]) => {
 
         const nodeA = tree[node.childA],
-            nodeB = tree[node.childB];
-        let result = {} as { alignment: string[], score: number; };
+              nodeB = tree[node.childB];
+        let result = {} as { score: number; };
 
         // note: msa property has already been computed when the tree
         // has had subtrees from a previous alignment, copied over.
@@ -47,10 +48,7 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
         if (isLeafNode(nodeA)) { //A is a single sequence
             if (isLeafNode(nodeB)) { //B is a single sequence
                 const lR = pairwiseAlignment(nodeA.seq, nodeB.seq, pParam);
-                result = { alignment: [
-                    estringTransform(nodeA.seq.rawSeq, lR.estringA),
-                    estringTransform(nodeB.seq.rawSeq, lR.estringB)
-                ], score: lR.score };
+                result.score = lR.score;
 
                 node.numSeq = [nodeA.numSeq[0], nodeB.numSeq[0]];
                 node.estring = [lR.estringA, lR.estringB];
@@ -68,24 +66,23 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
+                    // !!! B and A order are inverted
+
                 const lR = MSASeqAlignment(nodeB, nodeA, pParam);
-                result = {
-                    score: lR.score,
-                    alignment: [
-                        estringTransform(nodeA.seq.rawSeq, lR.estringA),
-                        ...nodeB.msa.map(seq => { return estringTransform(seq, lR.estringB); })
-                    ]
-                }
+                result.score = lR.score;
+
+                    // !!! estringA applies to nodeB
+
                 node.numSeq = [nodeA.numSeq[0], ...nodeB.numSeq];
                 node.estring = [
-                    lR.estringA,
-                    ...nodeB.estring.map(es => estringProduct(lR.estringB, es))
+                    lR.estringB,
+                    ...nodeB.estring.map(es => estringProduct(lR.estringA, es))
                 ];
                 node.profile = mergeProfiles(
                     nodeA.profile,
                     nodeB.profile,
-                    lR.estringA,
                     lR.estringB,
+                    lR.estringA,
                     pParam
                 );
 
@@ -98,13 +95,8 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
 
             const lR = MSAMSAAlignment(nodeA, nodeB, pParam);
-            result = {
-                score: lR.score,
-                alignment: [
-                    ...nodeA.msa.map(seq => { return estringTransform(seq, lR.estringA); }),
-                    ...nodeB.msa.map(seq => { return estringTransform(seq, lR.estringB); })
-                ]
-            }
+            result.score = lR.score;
+
             node.estring = [
                 ...nodeA.estring.map(es => estringProduct(lR.estringA, es)),
                 ...nodeB.estring.map(es => estringProduct(lR.estringB, es))
@@ -120,11 +112,11 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             if (DEBUG)
                 Log.add(`MSA ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
         }
-        node.msa = result.alignment;
         node.numSeq = [...nodeA.numSeq, ...nodeB.numSeq];
 
         return result.score;
     };
+
     if (DEBUG)
         Log.add('Start Progressive Alignment');
 
@@ -153,10 +145,16 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
 
     // First alignment following guide tree
     const score1 = treeAlign(root, weights);
+    root.msa = computeMSA(root, seq);
+
     let msa = sortMSA(root.msa, root.numSeq); // sort sequences in the order they came in
 
     if (DEBUG)
         Log.add('End MSA computation');
+
+    return msa;
+
+//================== For now, don't refine ====================
 
     // Refinement.
     // Now that we got a first alignment of all sequences, let see if some
@@ -199,4 +197,12 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
         return msa;
     }
 
+}
+
+function computeMSA (root: InternalNode, seq: TSequence[]) {
+    let lMSA: string[] = [];
+    root.numSeq.forEach((seqIdx, alIdx) => {
+        lMSA.push(estringTransform(seq[seqIdx].rawSeq, root.estring[alIdx]));
+    });
+    return lMSA;
 }
