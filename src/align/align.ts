@@ -231,14 +231,14 @@ export function pairwiseAlignment (
 
     let i = lSeqALen;
     let j = lSeqBLen;
-    var lIdx = lSeqALen * lSeqBLen + lSeqBLen;
+    let lIdx = lSeqALen * lSeqBLen + lSeqBLen;
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
 
     // current matrix is either M (0), D (1) or I(2). Let's have a look
     // at the last value to see if the optimum is coming from DEL
     // (bit value 4) or INS (bit value 8) or Match (no bit value)
-    var lCurrentMatrix = (tb & 12) >> 2,
+    let lCurrentMatrix = (tb & 12) >> 2,
         val = 0;
 
     while ((i > 0) && (j > 0)) {
@@ -308,19 +308,15 @@ export function MSASeqAlignment(
     opt = 0
 ) {
 
-
-
     const seqB = nodeB.seq,
         //wA = noeudA.weight, //probably unnecessary
-        msaA = nodeA.msa,
         lSeqBLen = seqB.rawSeq.length,
-        lProfALen = msaA[0].length;
+        lProfALen = nodeA.profile.length;
 
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
         lDelArr  : number[] = [];
-    const tbM = new Uint8Array((lProfALen + 1) * (lSeqBLen + 1)),
-        lAlignment: string[] = [];
+    const tbM = new Uint8Array((lProfALen + 1) * (lSeqBLen + 1));
 
     let lGapOpenA = 0.0,
         lGapOpenB = 0.0,
@@ -355,7 +351,7 @@ export function MSASeqAlignment(
     const sB = seqB.encodedSeq;
 
     // Convert MSA in node B to profile
-    const profA = profileFromMSA(msaA, nodeA.tabWeight, params, opt);
+    const profA = nodeA.profile;
 
     // Note that for performance reason, the outer loop iterates on profile A.
     // This allows caching the values for substitution scores used in the inner
@@ -453,59 +449,64 @@ export function MSASeqAlignment(
     //traceback
     let i = lProfALen;
     let j = lSeqBLen;
-    let idx = lProfALen * lSeqBLen + lSeqBLen,
+    let lIdx = lProfALen * lSeqBLen + lSeqBLen,
         k = 0;
 
-    lAlignment.push( seqB.rawSeq , ...msaA);
+    const lEpathA: number[] = [];
+    const lEpathB: number[] = [];
 
 
-    let currentMatrix = (tb & 12) >> 2,
-        value = 0;
+    let lCurrentMatrix = (tb & 12) >> 2,
+        val = 0;
     while ((i > 0) && (j > 0)) {
-        idx = i * lSeqBLen + j;
+        lIdx = i * lSeqBLen + j;
 
-        if (currentMatrix === 0) {
-            value = tbM[idx] >> 2;
-            if (value === 0) {
+        if (lCurrentMatrix === 0) {
+            val = tbM[lIdx] >> 2;
+            if (val === 0) {    // Match
                 i--;
                 j--;
+                lEpathA.push(1);
+                lEpathB.push(1);
             }
         } else {
-            if (currentMatrix === 2) {
-                for (k = 1; k < lAlignment.length; k++) {
-                    lAlignment[k] = lAlignment[k].substring(0, i) + '-' + lAlignment[k].substring(i);
-                }
-                value = tbM[idx] & 2; //@@PP same as in _pairwise ?
+            if (lCurrentMatrix === 2) {
+                lEpathA.push(-1);
+                lEpathB.push(1);
+                val = tbM[lIdx] & 2; //@@PP same as in _pairwise ?
                 j--;
 
             } else {
-                lAlignment[0] = lAlignment[0].substring(0, j) + '-' + lAlignment[0].substring(j);
-                value = tbM[idx] & 1;
+                lEpathA.push(1);
+                lEpathB.push(-1);
+                val = tbM[lIdx] & 1;
                 i--;
             }
         }
-        currentMatrix = value;
+        lCurrentMatrix = val;
     }
 
-    //Finalize sequences
-    if (i === 0) {
-        var p = '-'.repeat(j);
-        for (k = 1; k < lAlignment.length; k++) {
-            lAlignment[k] = p + lAlignment[k];
-        }
-    } else { //j==0
-        lAlignment[0] = '-'.repeat(i) + lAlignment[0];
+    // Finish sequences edit by appending the remaining symbols
+    if (i > 0) {
+        lEpathA.push(i);
+        lEpathB.push(-i);
+    } else if (j > 0) {
+        lEpathA.push(-j)
+        lEpathB.push(j);
     }
+
+
     return {
-        alignment: lAlignment,
+        estringA: epath2estring(lEpathA),
+        estringB: epath2estring(lEpathB),
         score: score
     };
 }
 
 /**
  * profile to profile alignment
- * @param {object} noeudA a node object containing a multiple sequence alignment and its weight
- * @param {object} noeudB a node object containing a multiple sequence alignment and its weight
+ * @param {object} nodeA a node object containing a multiple sequence alignment and its weight
+ * @param {object} nodeB a node object containing a multiple sequence alignment and its weight
  */
 
 export function MSAMSAAlignment(
@@ -515,33 +516,12 @@ export function MSAMSAAlignment(
     opt = 0
 ) {
 
-    let lMsaA: string[],
-        lMsaB: string[],
-        lWtB: number[],
-        lWtA: number[];
-    let lInverted = false;
-
-    //permutation: make B the smallest, to reduce iterations
-    if (nodeA.msa.length < nodeB.msa.length) {
-        lMsaB = nodeA.msa;
-        lMsaA = nodeB.msa;
-        lWtB = nodeA.tabWeight;
-        lWtA = nodeB.tabWeight;
-        lInverted = true;
-    } else {
-        lMsaA = nodeA.msa;
-        lMsaB = nodeB.msa;
-        lWtB = nodeB.tabWeight;
-        lWtA = nodeA.tabWeight;
-    }
-
-    const n = lMsaA[0].length,
-        m = lMsaB[0].length,
-        tbM = new Uint8Array((n + 1) * (m + 1));
+    const lProfALen = nodeA.profile.length,
+        lProfBLen = nodeB.profile.length,
+        tbM = new Uint8Array((lProfALen + 1) * (lProfBLen + 1));
 
     let lMatchArr = [],
         lDelArr = [],
-        lAlignment: string[] = [],
         lMatch      = 0.0,
         lGapOpenA   = 0.0,
         lGapOpenB   = 0.0,
@@ -570,15 +550,15 @@ export function MSAMSAAlignment(
     const GAP_END_FACTOR   = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP ? 1 : 2;
 
     //convert to profile
-    const profB = profileFromMSA(lMsaB, lWtB, params, opt);
-    const profA = profileFromMSA(lMsaA, lWtA, params, opt);
+    const profB = nodeB.profile;
+    const profA = nodeA.profile;
 
 
 
     //INITIALIZATION of DP vectors
     lMatchArr[0] = 0;
     lDelArr[0] = -Infinity;
-    for (j = 1; j <= m; j++) {
+    for (j = 1; j <= lProfBLen; j++) {
         lMatchArr[j] = profB.m_ScoreGapOpen[0] + profB.m_ScoreGapClose[j - 1] / GAP_START_FACTOR;
         lDelArr[j] = -Infinity;
     }
@@ -587,7 +567,7 @@ export function MSAMSAAlignment(
 
     //Main DP routine
 
-    for (i = 1; i <= n; i++) {
+    for (i = 1; i <= lProfALen; i++) {
         lProfAAAScores = profA.m_AAScores.subarray(params.abSize * (i - 1), params.abSize * i);
         lProfAGapOP = profA.m_ScoreGapOpen[i - 1];
         lProfAGapCP = profA.m_ScoreGapClose[i - 1];
@@ -598,13 +578,13 @@ export function MSAMSAAlignment(
         lLastInsert = -Infinity;
         lDelArr[0] = profA.m_ScoreGapOpen[0];
 
-        for (j = 1; j <= m; j++) {
+        for (j = 1; j <= lProfBLen; j++) {
             tb = TRACE_BACK.MATCH;
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
             lGapExtendA = lPrevDelete = lDelArr[j];
-            if (j === m && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+            if (j === lProfBLen && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lGapOpenA -= lProfAGapOP / 2;
             }
 
@@ -618,7 +598,7 @@ export function MSAMSAAlignment(
             //Insert i,j score computation
             lGapOpenB = lPrevMatch + profB.m_ScoreGapOpen[j - 1];
             lGapExtendB = lPrevLastInsert = lLastInsert;
-            if (i === n && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+            if (i === lProfALen && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lGapOpenB -= profB.m_ScoreGapOpen[j - 1] / 2;
             }
 
@@ -649,9 +629,9 @@ export function MSAMSAAlignment(
             if (j === 1 && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) { //terminal penalties are halved
                 lDeletej_1 -= lProfAGapCP / 2;
             }
-            if ((j === m) && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
+            if ((j === lProfBLen) && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lDeletej_1 -= lProfAGapCP / 2;
-                lInserti_1 -= profB.m_ScoreGapClose[m - 1] / 2;
+                lInserti_1 -= profB.m_ScoreGapClose[lProfBLen - 1] / 2;
             }
 
             lMatchArr[j - 1] = lPrevMatch;
@@ -673,69 +653,64 @@ export function MSAMSAAlignment(
                     tb += TRACE_BACK.MATCH2DEL;
                 }
             }
-            tbM[i * m + j] = tb;
+            tbM[i * lProfBLen + j] = tb;
         }
-        lMatchArr[m] = lPrevMatch;
+        lMatchArr[lProfBLen] = lPrevMatch;
     }
     const score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
 
     //traceback
-    i = n;
-    j = m;
+    i = lProfALen;
+    j = lProfBLen;
     k = 0;
-    let idx = n * m;
+    let lIdx = lProfALen * lProfBLen + lProfBLen;
 
-    lAlignment = lMsaA.concat(lMsaB);
+    const lEpathA: number[] = [];
+    const lEpathB: number[] = [];
 
-    let currentMatrix = (tb & 12) >> 2,
-        value = 0;
+    let lCurrentMatrix = (tb & 12) >> 2,
+        val = 0;
     while ((i > 0) && (j > 0)) {
-        idx = i * m + j;
-        if (currentMatrix === 0) {
-            value = tbM[idx] >> 2;
-            if (value === 0) {
+        lIdx = i * lProfBLen + j;
+
+        if (lCurrentMatrix === 0) {
+            val = tbM[lIdx] >> 2;
+            if (val === 0) {
                 i--;
                 j--;
+                lEpathA.push(1);
+                lEpathB.push(1);
             }
         } else {
-            if (currentMatrix === 2) {
-                for (k = 0; k < lMsaA.length; k++) {
-                    lAlignment[k] = lAlignment[k].substring(0, i) + '-' + lAlignment[k].substring(i);
-                }
-                value = tbM[idx] & 2;
+            if (lCurrentMatrix === 2) {
+                lEpathA.push(-1);
+                lEpathB.push(1);
+                val = tbM[lIdx] & 2; //@@PP same as in _pairwise ?
                 j--;
+
             } else {
-                for (k = lMsaA.length; k < lAlignment.length; k++) {
-                    lAlignment[k] = lAlignment[k].substring(0, j) + '-' + lAlignment[k].substring(j);
-                }
-                value = tbM[idx] & 1;
+                lEpathA.push(1);
+                lEpathB.push(-1);
+                val = tbM[lIdx] & 1;
                 i--;
             }
         }
-        currentMatrix = value;
+        lCurrentMatrix = val;
     }
 
-    //finalize alignments
-    let lPadding: string;
-    if (j === 0) {
-        lPadding = '-'.repeat(i);
-        for (k = lMsaA.length; k < lAlignment.length; k++) {
-            lAlignment[k] = lPadding + lAlignment[k];
-        }
-    } else { //i==0
-        lPadding = '-'.repeat(j);
-        for (k = 0; k < lMsaA.length; k++) {
-            lAlignment[k] = lPadding + lAlignment[k];
-        }
+    // Finish sequences edit by appending the remaining symbols
+    if (i > 0) {
+        lEpathA.push(i);
+        lEpathB.push(-i);
+    } else if (j > 0) {
+        lEpathA.push(-j)
+        lEpathB.push(j);
     }
 
-    if (lInverted) lAlignment = [
-        ...lAlignment.slice(lMsaA.length),
-        ...lAlignment.slice(0, lMsaA.length)
-    ];
 
     return {
-        alignment: lAlignment,
+        estringA: epath2estring(lEpathA),
+        estringB: epath2estring(lEpathB),
         score: score
     };
 }
