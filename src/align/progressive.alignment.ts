@@ -15,10 +15,12 @@
 import { DEBUG, TAlignmentParam } from "./params";
 import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "../sequence/sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights,
-    compareTrees } from "../sequence/tree";
+    compareTrees,
+    setProfiles} from "../sequence/tree";
 import Log from '../utils/logger';
 import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align";
-import { estringTransform } from "../utils/estring";
+import { estringProduct, estringTransform } from "../utils/estring";
+import { mergeProfiles } from "../sequence/profile";
 
 
 
@@ -26,7 +28,7 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
 
     const treeAlign = (node: InternalNode, tabWeight: number[]) => {
 
-        var nodeA = tree[node.childA],
+        const nodeA = tree[node.childA],
             nodeB = tree[node.childB];
         let result = {} as { alignment: string[], score: number; };
 
@@ -50,13 +52,42 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
                     estringTransform(nodeB.seq.rawSeq, lR.estringB)
                 ], score: lR.score };
 
+                node.numSeq = [nodeA.numSeq[0], nodeB.numSeq[0]];
+                node.estring = [lR.estringA, lR.estringB];
+                node.profile = mergeProfiles(
+                    nodeA.profile,
+                    nodeB.profile,
+                    lR.estringA,
+                    lR.estringB,
+                    pParam
+                )
+
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
 
             } else { //B is a MSA
                 nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
 
-                result = MSASeqAlignment(nodeB, nodeA, pParam);
+                const lR = MSASeqAlignment(nodeB, nodeA, pParam);
+                result = {
+                    score: lR.score,
+                    alignment: [
+                        estringTransform(nodeA.seq.rawSeq, lR.estringA),
+                        ...nodeB.msa.map(seq => { return estringTransform(seq, lR.estringB); })
+                    ]
+                }
+                node.numSeq = [nodeA.numSeq[0], ...nodeB.numSeq];
+                node.estring = [
+                    lR.estringA,
+                    ...nodeB.estring.map(es => estringProduct(lR.estringB, es))
+                ];
+                node.profile = mergeProfiles(
+                    nodeA.profile,
+                    nodeB.profile,
+                    lR.estringA,
+                    lR.estringB,
+                    pParam
+                );
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
@@ -66,7 +97,25 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
             nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
 
-            result = MSAMSAAlignment(nodeA, nodeB, pParam);
+            const lR = MSAMSAAlignment(nodeA, nodeB, pParam);
+            result = {
+                score: lR.score,
+                alignment: [
+                    ...nodeA.msa.map(seq => { return estringTransform(seq, lR.estringA); }),
+                    ...nodeB.msa.map(seq => { return estringTransform(seq, lR.estringB); })
+                ]
+            }
+            node.estring = [
+                ...nodeA.estring.map(es => estringProduct(lR.estringA, es)),
+                ...nodeB.estring.map(es => estringProduct(lR.estringB, es))
+            ];
+            node.profile = mergeProfiles(
+                nodeA.profile,
+                nodeB.profile,
+                lR.estringA,
+                lR.estringB,
+                pParam
+            );
 
             if (DEBUG)
                 Log.add(`MSA ${nodeA.numSeq} - MSA ${nodeB.numSeq}`);
@@ -99,6 +148,8 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
 
     if (DEBUG)
         Log.add('Compute Weights - Start MSA');
+
+    setProfiles(tree, pParam);
 
     // First alignment following guide tree
     const score1 = treeAlign(root, weights);
