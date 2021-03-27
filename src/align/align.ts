@@ -316,7 +316,9 @@ export function MSASeqAlignment(
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
         lDelArr  : number[] = [];
-    const tbM = new Uint8Array((lProfALen + 1) * (lSeqBLen + 1));
+    const tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lSeqBLen + 1) / 2));
+    let tbIdx: number;
+    let isOdd: number;
 
     let lGapOpenA = 0.0,
         lGapOpenB = 0.0,
@@ -440,7 +442,16 @@ export function MSASeqAlignment(
                     tb += TRACE_BACK.MATCH2DEL;
                 }
             }
-            tbM[i * lSeqBLen + j] = tb;
+
+            // Store trace-back bits
+            tbIdx = i * lSeqBLen + j;
+            isOdd =  tbIdx % 2;
+            tbIdx = tbIdx >>> 1;
+            if (isOdd) {
+                tbM[tbIdx] += tb
+            } else {
+                tbM[tbIdx] += tb << 4;
+            }
         }
         lMatchArr[lSeqBLen] = lPrevMatch;
     }
@@ -449,9 +460,7 @@ export function MSASeqAlignment(
     //traceback
     let i = lProfALen;
     let j = lSeqBLen;
-    let lIdx = lProfALen * lSeqBLen + lSeqBLen,
-        k = 0;
-
+    let lIdx = lProfALen * lSeqBLen + lSeqBLen;
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
 
@@ -460,9 +469,12 @@ export function MSASeqAlignment(
         val = 0;
     while ((i > 0) && (j > 0)) {
         lIdx = i * lSeqBLen + j;
-
+        tbIdx = lIdx >>> 1;
+        isOdd = lIdx % 2;
+        val = tbM[tbIdx];
+        val = isOdd ? val & 0b1111 : val >>> 4;
         if (lCurrentMatrix === 0) {
-            val = tbM[lIdx] >> 2;
+            val = val >> 2;
             if (val === 0) {    // Match
                 i--;
                 j--;
@@ -473,13 +485,12 @@ export function MSASeqAlignment(
             if (lCurrentMatrix === 2) {
                 lEpathA.push(-1);
                 lEpathB.push(1);
-                val = tbM[lIdx] & 2; //@@PP same as in _pairwise ?
+                val = val & 2;
                 j--;
-
             } else {
                 lEpathA.push(1);
                 lEpathB.push(-1);
-                val = tbM[lIdx] & 1;
+                val = val & 1;
                 i--;
             }
         }
