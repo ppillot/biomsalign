@@ -15,7 +15,7 @@ import { aaToNum, nucToNum, TSequence } from './sequence';
 /*
  * ProfPos definition ()
  */
-class ProfPos {
+export class ProfPos {
     m_bAllGaps: BitArray;
     /** Residues present at this position unordered */
     m_uSortOrder: Uint8Array;

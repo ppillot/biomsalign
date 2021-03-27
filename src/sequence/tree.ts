@@ -5,6 +5,8 @@
  * @copyright 2020
  */
 
+import { TAlignmentParam } from '../align/params';
+import { seqToProf, ProfPos } from './profile';
 import { TSequence } from './sequence';
 
 export enum NODE_TYPE {
@@ -15,7 +17,7 @@ export enum NODE_TYPE {
 
 export type LeafNode = {
     seq: TSequence;
-    profile: any[];
+    profile: ProfPos;
     childA: number;
     childB: number;
     distance: number;
@@ -29,7 +31,8 @@ export type LeafNode = {
 };
 
 export type InternalNode = Omit<LeafNode, 'seq'> & {
-    profile: any[],
+    estring: number[][],
+    profile: ProfPos,
     tabWeight: number[]
 };
 
@@ -56,7 +59,7 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
         clusters[i] = {
             type: NODE_TYPE.LEAF,
             seq: tSeq[i],
-            profile: [],
+            profile: null as unknown as ProfPos,
             childA: i,
             childB: i,
             distance: 0,
@@ -135,10 +138,11 @@ function findMinInDistanceMatrix (
     }
 
     const a: InternalNode = {
-        profile: [],
+        profile: null as unknown as ProfPos,
         childA: tabIdx[minX],
         childB: tabIdx[minY],
         distance: min,
+        estring: [],
         msa: [],
         numSeq: [],
         type: NODE_TYPE.NODE,
@@ -153,8 +157,7 @@ function findMinInDistanceMatrix (
 }
 
 function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: number[]) {
-    const xyMax = Math.max(x, y);
-    const xyMin = Math.min(x, y);
+    const [lMax, lMin] = x > y ? [x, y]: [y, x];
     const averages = [];
     const l = matrix.length;
 
@@ -182,8 +185,8 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
         // remove the cells at positions row(x) and row(y)
 
-        matrix[i].splice(xyMax, 1);
-        matrix[i].splice(xyMin, 1);
+        matrix[i].splice(lMax, 1);
+        matrix[i].splice(lMin, 1);
     }
 
     // the bottom of the future last column has the identity value (dist=0)
@@ -196,10 +199,10 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
     // remove the values that were merged in averages
 
-    matrix.splice(xyMax, 1);
-    matrix.splice(xyMin, 1);
-    tI.splice(xyMax, 1);
-    tI.splice(xyMin, 1);
+    matrix.splice(lMax, 1);
+    matrix.splice(lMin, 1);
+    tI.splice(lMax, 1);
+    tI.splice(lMin, 1);
 
     return matrix;
 }
@@ -340,3 +343,14 @@ export function compareTrees (treeA: Tree, treeB: Tree) {
     return false;
 
 };
+
+export function setProfiles (tree: Tree, pParam: TAlignmentParam, opt?: number) {
+    let i = 0;
+    let lNode = tree[i] as LeafNode;
+    while (isLeafNode(lNode) && i < tree.length) {
+        lNode.profile = seqToProf(lNode.seq, lNode.weight, pParam, opt);
+        i ++;
+        //@ts-expect-error node type could be InternalNode
+        lNode = tree[i];
+    }
+}
