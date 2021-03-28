@@ -78,7 +78,7 @@ export class BioMSA {
                     lEStrings = noalignPair(this.sequences[0], this.sequences[1], lParam);
                 } else {
                     let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
-                    lEStrings = [lResult.estringA, lResult.estringB];
+                    lEStrings = lResult.estrings;
                 }
 
                 if (DEBUG) Log.summary();

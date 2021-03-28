@@ -436,8 +436,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
             }, pAlignParam,
             ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
-            lEpathA.push(...lResult.estringA);
-            lEpathB.push(...lResult.estringB);
+            lEpathA.push(...lResult.estrings[0]);
+            lEpathB.push(...lResult.estrings[1]);
         }
 
     }

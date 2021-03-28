@@ -51,12 +51,12 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
                 result.score = lR.score;
 
                 node.numSeq = [nodeA.numSeq[0], nodeB.numSeq[0]];
-                node.estring = [lR.estringA, lR.estringB];
+                node.estring = lR.estrings;
                 node.profile = mergeProfiles(
                     nodeA.profile,
                     nodeB.profile,
-                    lR.estringA,
-                    lR.estringB,
+                    lR.estrings[0],
+                    lR.estrings[1],
                     pParam
                 )
 
@@ -71,18 +71,18 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
                 const lR = MSASeqAlignment(nodeB, nodeA, pParam);
                 result.score = lR.score;
 
-                    // !!! estringA applies to nodeB
+                    // !!! estrings[0] applies to nodeB
 
                 node.numSeq = [nodeA.numSeq[0], ...nodeB.numSeq];
                 node.estring = [
-                    lR.estringB,
-                    ...nodeB.estring.map(es => estringProduct(lR.estringA, es))
+                    lR.estrings[1],
+                    ...nodeB.estring.map(es => estringProduct(lR.estrings[0], es))
                 ];
                 node.profile = mergeProfiles(
                     nodeA.profile,
                     nodeB.profile,
-                    lR.estringB,
-                    lR.estringA,
+                    lR.estrings[1],
+                    lR.estrings[0],
                     pParam
                 );
 
@@ -98,14 +98,14 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             result.score = lR.score;
 
             node.estring = [
-                ...nodeA.estring.map(es => estringProduct(lR.estringA, es)),
-                ...nodeB.estring.map(es => estringProduct(lR.estringB, es))
+                ...nodeA.estring.map(es => estringProduct(lR.estrings[0], es)),
+                ...nodeB.estring.map(es => estringProduct(lR.estrings[1], es))
             ];
             node.profile = mergeProfiles(
                 nodeA.profile,
                 nodeB.profile,
-                lR.estringA,
-                lR.estringB,
+                lR.estrings[0],
+                lR.estrings[1],
                 pParam
             );
 

@@ -228,9 +228,8 @@ export function pairwiseAlignment (
     const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lSeqALen, lSeqBLen, tb);
 
     return {
-        estringA: epath2estring(lEpathA),
-        estringB: epath2estring(lEpathB),
-        score: score
+        estrings: [epath2estring(lEpathA), epath2estring(lEpathB)],
+        score
     };
 };
 
@@ -402,9 +401,8 @@ export function MSASeqAlignment(
     const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lProfALen, lSeqBLen, tb);
 
     return {
-        estringA: epath2estring(lEpathA),
-        estringB: epath2estring(lEpathB),
-        score: score
+        estrings: [epath2estring(lEpathA), epath2estring(lEpathB)],
+        score
     };
 }
 
@@ -580,9 +578,8 @@ export function MSAMSAAlignment(
     const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lProfALen, lProfBLen, tb);
 
     return {
-        estringA: epath2estring(lEpathA),
-        estringB: epath2estring(lEpathB),
-        score: score
+        estrings: [epath2estring(lEpathA), epath2estring(lEpathB)],
+        score
     };
 }
 
