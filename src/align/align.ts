@@ -226,65 +226,7 @@ export function pairwiseAlignment (
     var score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 1]);
 
     // Traceback
-    // Move backwards starting from the last optimal scoring position
-    // in the TB matrix.
-
-    let i = lSeqALen;
-    let j = lSeqBLen;
-    let lIdx = lSeqALen * lSeqBLen + lSeqBLen;
-    const lEpathA: number[] = [];
-    const lEpathB: number[] = [];
-
-    // current matrix is either M (0), D (1) or I(2). Let's have a look
-    // at the last value to see if the optimum is coming from DEL
-    // (bit value 4) or INS (bit value 8) or Match (no bit value)
-    let lCurrentMatrix = (tb & 12) >> 2,
-        val = 0;
-
-    while ((i > 0) && (j > 0)) {
-        lIdx = i * lSeqBLen + j;
-        tbIdx = lIdx >>> 1;
-        isOdd = lIdx % 2;
-        val = tbM[tbIdx];
-        val = isOdd ? val & 0b1111 : val >>> 4;
-        if (lCurrentMatrix === 0) {
-            val = val >> 2;
-            if (val === 0) { //-->Match
-                i--;
-                j--;
-                lEpathA.push(1);
-                lEpathB.push(1);
-            }
-            // other cases --> run the loop once more to enter the
-            // following block.
-        } else {
-            if (lCurrentMatrix === 2) { //-->Ins
-                lEpathA.push(-1);
-                lEpathB.push(1);
-                j--;
-                val = val & 2;
-            } else { //1 --> Del
-                i--;
-                lEpathA.push(1);
-                lEpathB.push(-1);
-                val = val & 1;
-            }
-        }
-        lCurrentMatrix = val;
-    }
-
-    // if (DEBUG) Log.add('End traceback');
-
-    // Finish sequences edit by appending the remaining symbols
-    if (i > 0) {
-        lEpathA.push(i);
-        lEpathB.push(-i);
-    } else if (j > 0) {
-        lEpathA.push(-j)
-        lEpathB.push(j);
-    }
-
-
+    const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lSeqALen, lSeqBLen, tb);
 
     return {
         estringA: epath2estring(lEpathA),
@@ -458,54 +400,7 @@ export function MSASeqAlignment(
     const score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 2]);
 
     //traceback
-    let i = lProfALen;
-    let j = lSeqBLen;
-    let lIdx = lProfALen * lSeqBLen + lSeqBLen;
-    const lEpathA: number[] = [];
-    const lEpathB: number[] = [];
-
-
-    let lCurrentMatrix = (tb & 12) >> 2,
-        val = 0;
-    while ((i > 0) && (j > 0)) {
-        lIdx = i * lSeqBLen + j;
-        tbIdx = lIdx >>> 1;
-        isOdd = lIdx % 2;
-        val = tbM[tbIdx];
-        val = isOdd ? val & 0b1111 : val >>> 4;
-        if (lCurrentMatrix === 0) {
-            val = val >> 2;
-            if (val === 0) {    // Match
-                i--;
-                j--;
-                lEpathA.push(1);
-                lEpathB.push(1);
-            }
-        } else {
-            if (lCurrentMatrix === 2) {
-                lEpathA.push(-1);
-                lEpathB.push(1);
-                val = val & 2;
-                j--;
-            } else {
-                lEpathA.push(1);
-                lEpathB.push(-1);
-                val = val & 1;
-                i--;
-            }
-        }
-        lCurrentMatrix = val;
-    }
-
-    // Finish sequences edit by appending the remaining symbols
-    if (i > 0) {
-        lEpathA.push(i);
-        lEpathB.push(-i);
-    } else if (j > 0) {
-        lEpathA.push(-j)
-        lEpathB.push(j);
-    }
-
+    const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lProfALen, lSeqBLen, tb);
 
     return {
         estringA: epath2estring(lEpathA),
@@ -683,39 +578,71 @@ export function MSAMSAAlignment(
     const score = Math.max(lMatch, lLastInsert, lDelArr[j - 1]);
 
     //traceback
-    i = lProfALen;
-    j = lProfBLen;
-    let lIdx = lProfALen * lProfBLen + lProfBLen;
+    const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lProfALen, lProfBLen, tb);
 
+    return {
+        estringA: epath2estring(lEpathA),
+        estringB: epath2estring(lEpathB),
+        score: score
+    };
+}
+
+/**
+ * Converts a traceback matrix to two edit paths, that is two arrays containing
+ * either 1 (add one letter from sequence) or -1 (add one gap in the alignment)
+ *
+ * @param {Uint8Array} tbM traceback matrix as computed by the DP
+ * @param {number} lenA length of sequence/profile A
+ * @param {number} lenB length of sequence/profile B
+ * @param {number} tb0  for convenience, first value to use for starting
+ * @returns
+ */
+function tracebBackToEpaths (tbM: Uint8Array, lenA: number, lenB: number, tb0: number) {
+
+    // Move backwards starting from the last optimal scoring position
+    // in the TB matrix.
+
+    let i = lenA;
+    let j = lenB;
+    let lIdx = lenA * lenB + lenB;
+    let tbIdx = lIdx;
+    let isOdd = lIdx % 2;
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
 
-    let lCurrentMatrix = (tb & 12) >> 2,
+    // current matrix is either M (0), D (1) or I(2). Let's have a look
+    // at the last value to see if the optimum is coming from DEL
+    // (bit value 4) or INS (bit value 8) or Match (no bit value)
+
+    let lCurrentMatrix = (tb0 & 12) >> 2,   // 0: Match, 1: Delete, 2: Insert
         val = 0;
     while ((i > 0) && (j > 0)) {
-        lIdx = i * lProfBLen + j;
-        tbIdx = lIdx >>> 1;
+        lIdx = i * lenB + j;    // idx in original traceback matrix
+        tbIdx = lIdx >>> 1;     // idx in compressed tb mtx
         isOdd = lIdx % 2;
         val = tbM[tbIdx];
-        val = isOdd ? val & 0b1111 : val >>> 4;
+        val = isOdd ? val & 0b1111 : val >>> 4; // either 4 least/most significant bits
+
         if (lCurrentMatrix === 0) {
-            val = val >> 2;
+            val = val >> 2;     // Can come from M, D or I
             if (val === 0) {    // Match
                 i--;
                 j--;
                 lEpathA.push(1);
                 lEpathB.push(1);
             }
+            // other cases --> run the loop once more to enter the
+            // following block.
         } else {
-            if (lCurrentMatrix === 2) {
+            if (lCurrentMatrix === 2) { // Insert
                 lEpathA.push(-1);
                 lEpathB.push(1);
-                val = val & 2;
+                val = val & 2;          // Comes from I or M
                 j--;
-            } else {
+            } else {                    // 1 Delete
                 lEpathA.push(1);
                 lEpathB.push(-1);
-                val = val & 1;
+                val = val & 1;          // Comes from D or M
                 i--;
             }
         }
@@ -731,10 +658,5 @@ export function MSAMSAAlignment(
         lEpathB.push(j);
     }
 
-
-    return {
-        estringA: epath2estring(lEpathA),
-        estringB: epath2estring(lEpathB),
-        score: score
-    };
+    return [lEpathA, lEpathB];
 }
