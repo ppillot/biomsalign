@@ -529,10 +529,12 @@ export function MSAMSAAlignment(
 
     const lProfALen = nodeA.profile.length,
         lProfBLen = nodeB.profile.length,
-        tbM = new Uint8Array((lProfALen + 1) * (lProfBLen + 1));
+        tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lProfBLen + 1) / 2));
+    let tbIdx: number;
+    let isOdd: number;
 
-    let lMatchArr = [],
-        lDelArr = [],
+    let lMatchArr: number[] = [],
+        lDelArr: number[] = [],
         lMatch      = 0.0,
         lGapOpenA   = 0.0,
         lGapOpenB   = 0.0,
@@ -664,7 +666,17 @@ export function MSAMSAAlignment(
                     tb += TRACE_BACK.MATCH2DEL;
                 }
             }
-            tbM[i * lProfBLen + j] = tb;
+
+            // Store trace-back bits
+            tbIdx = i * lProfBLen + j;
+            isOdd =  tbIdx % 2;
+            tbIdx = tbIdx >>> 1;
+            if (isOdd) {
+                tbM[tbIdx] += tb
+            } else {
+                tbM[tbIdx] += tb << 4;
+            }
+
         }
         lMatchArr[lProfBLen] = lPrevMatch;
     }
@@ -673,7 +685,6 @@ export function MSAMSAAlignment(
     //traceback
     i = lProfALen;
     j = lProfBLen;
-    k = 0;
     let lIdx = lProfALen * lProfBLen + lProfBLen;
 
     const lEpathA: number[] = [];
@@ -683,10 +694,13 @@ export function MSAMSAAlignment(
         val = 0;
     while ((i > 0) && (j > 0)) {
         lIdx = i * lProfBLen + j;
-
+        tbIdx = lIdx >>> 1;
+        isOdd = lIdx % 2;
+        val = tbM[tbIdx];
+        val = isOdd ? val & 0b1111 : val >>> 4;
         if (lCurrentMatrix === 0) {
-            val = tbM[lIdx] >> 2;
-            if (val === 0) {
+            val = val >> 2;
+            if (val === 0) {    // Match
                 i--;
                 j--;
                 lEpathA.push(1);
@@ -696,13 +710,12 @@ export function MSAMSAAlignment(
             if (lCurrentMatrix === 2) {
                 lEpathA.push(-1);
                 lEpathB.push(1);
-                val = tbM[lIdx] & 2; //@@PP same as in _pairwise ?
+                val = val & 2;
                 j--;
-
             } else {
                 lEpathA.push(1);
                 lEpathB.push(-1);
-                val = tbM[lIdx] & 1;
+                val = val & 1;
                 i--;
             }
         }
