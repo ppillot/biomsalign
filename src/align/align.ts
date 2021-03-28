@@ -11,8 +11,7 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
-import { SEQUENCE_TYPE, TAlignmentParam } from "./params";
-import { profileFromMSA } from "../sequence/profile";
+import { TAlignmentParam } from "./params";
 import { TSequence } from "../sequence/sequence";
 import { InternalNode, LeafNode } from "../sequence/tree";
 import { epath2estring } from "../utils/estring";
