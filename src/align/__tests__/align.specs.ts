@@ -8,7 +8,7 @@ test('aligns ends', () => {
     const lSeqB = makeSequence('CCCAATTCTA');
     const lParam = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
     const lResult = pairwiseAlignment(lSeqA, lSeqB, lParam);
-    const lRB = estringTransform(lSeqB.rawSeq, lResult.estringB);
+    const lRB = estringTransform(lSeqB.rawSeq, lResult.estrings[1]);
     expect(lRB).toBe('CCCAATTCTA---------');
 });
 
@@ -17,6 +17,6 @@ test('aligns start', () => {
     const lSeqB = makeSequence('ACTGCCCTCA');
     const lParam = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
     const lResult = pairwiseAlignment(lSeqA, lSeqB, lParam);
-    const lRA = estringTransform(lSeqA.rawSeq, lResult.estringA);
+    const lRA = estringTransform(lSeqA.rawSeq, lResult.estrings[0]);
     expect(lRA).toBe('--AGCCCTTA');
 });
