@@ -12,7 +12,7 @@
  * Positive integers are the counts of letters conserved in a fragment, negative
  * numbers are the counts of insertions.
  * Note that the sum of the positive numbers is the size of the initial string,
- * and the sum of the absolute values are the final size of the string.
+ * and the sum of the absolute values is the final size of the string.
  * The alignment of two sequences can be described by the operators that
  * transform the initial strings in 2 strings of same size.
  *
@@ -101,6 +101,82 @@ export function estringProduct (estringB: number[], estringA: number[]): number[
     }
 
     return lSteps;
+}
+
+/**
+ * estringA and estringB are estrings that are applied independently to the
+ * same sequence. For example a sequence X is aligned to a sequence A using the
+ * estringA operator, and is aligned to a sequenceB using the estringB operator.
+ * estringMerge computes an estring that adds to sequence X the necessary gaps
+ * to align it both with sequence A and with sequence B. The main goal of this
+ * computation is to avoid introducing gaps twice when they interrupt the same
+ * segments of X while aligning with A and aligning with B.
+ * X: MQTIF
+ * A: MQQTIIF       B: MQVTIFE      A: MQQTIIF-
+ * X: MQ-TI-F       X: MT-TIF-      X: MG-TI-F- <2,-1,2,-1,1,-1>
+ *  <2,-1,2,-1,1>   <2,-1,3,-1>     B: MQVTI-FE
+ *
+ * @export
+ * @param {number[]} estringA
+ * @param {number[]} estringB
+ * @returns
+ */
+export function estringMerge(estringA: number[], estringB: number[]) {
+    const lEstring: number[] = [];
+
+    let i = 0;
+    let j = 0;
+    let lValA = estringA[0];
+    let lValB = estringB[0];
+
+    while (i < estringA.length || j < estringB.length) {
+        if (lValA === lValB) {
+            lEstring.push(lValB);
+            i++;
+            j++;
+            lValA = estringA[i];
+            lValB = estringB[j];
+            continue;
+        }
+
+        if (Math.sign(lValA) === Math.sign(lValB)) {
+            if (lValA > 0) {
+                // positive signs: add length of smallest segment (next
+                // iteration will be gaps insertions)
+
+                if (lValA > lValB) {
+                    lEstring.push(lValB);
+                    lValA -= lValB;
+                    lValB = estringB[++j];
+                } else {
+                    lEstring.push(lValA);
+                    lValB -= lValA;
+                    lValA = estringA[++i];
+                }
+            } else {
+                // gap insertions at the same position. Insert the maximum
+                // number of gaps
+
+                lEstring.push(Math.min(lValA, lValB))
+                lValA = estringA[++i];
+                lValB = estringB[++j];
+            }
+
+            continue
+        }
+
+        // opposite sign: insert gaps
+        if (lValA < 0 || lValB === undefined)  {
+            lEstring.push(lValA);
+            lValA = estringA[++i];
+            continue;
+        }
+
+        lEstring.push(lValB);
+        lValB = estringB[++j];
+    }
+
+    return lEstring;
 }
 
 /**
