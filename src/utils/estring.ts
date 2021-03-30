@@ -132,10 +132,8 @@ export function estringMerge(estringA: number[], estringB: number[]) {
     while (i < estringA.length || j < estringB.length) {
         if (lValA === lValB) {
             lEstring.push(lValB);
-            i++;
-            j++;
-            lValA = estringA[i];
-            lValB = estringB[j];
+            lValA = estringA[++i];
+            lValB = estringB[++j];
             continue;
         }
 
