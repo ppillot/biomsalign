@@ -1,4 +1,4 @@
-import { estringTransform, estringProduct, estringCat, epath2estring, estringMerge } from '../estring';
+import { estringTransform, estringProduct, estringCat, epath2estring, estringMerge, estringDifference } from '../estring';
 
 test('Transforms a string', () => {
     const lTxt = 'MQTIF';
@@ -45,4 +45,14 @@ test('Merges estrings', () => {
     expect(lMerge).toEqual([2,-1,2,-1,1,-1]);
     lMerge = estringMerge(lEString3, lEString4);
     expect(lMerge).toEqual([2,-2,1,-4,2]);
+});
+
+test('Diffs estrings', () => {
+    const lEString3 = [2,-1,2,-1,1,-1];
+    const lEString1 = [2,-1,2,-1,1];
+    const lEString2 = [2,-1,3,-1];
+    let lDiff = estringDifference(lEString3, lEString1);
+    expect(lDiff).toEqual([7,-1]);
+    lDiff = estringDifference(lEString3, lEString2);
+    expect(lDiff).toEqual([5,-1,2]);
 });

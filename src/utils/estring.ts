@@ -178,6 +178,106 @@ export function estringMerge(estringA: number[], estringB: number[]) {
 }
 
 /**
+ * Computes estringC that can be combined with estringA in estringProduct() to
+ * get estringB.
+ * The use case is to apply to sequence A, a transformation to align it with
+ * the profile sequence B/sequence C, knowing the estring that leads to the
+ * final shape of sequence B and the estring that aligns sequence B to sequence
+ * A.
+ * Important: we assume that estringB contains estringA. This entails that there
+ * is no continuous segment in estringB that can be longer than its homologous
+ * continuous segment in estringA (there is no gap between residues from
+ * applying estringA that is not found when applying estringB)
+ * X: MQTIF
+ * A: MQQTIIF       B: MQVTIFE      A: MQQTIIF-
+ * X: MQ-TI-F       X: MT-TIF-      X: MG-TI-F- <2,-1,2,-1,1,-1>
+ *  <2,-1,2,-1,1>   <2,-1,3,-1>     B: MQVTI-FE
+ *
+ * difference <2,-1,2,-1,1,-1> - <2,-1,3,-1> = <5,-1,2>
+ * difference <2,-1,2,-1,1,-1> - <2,-1,2,-1,1> = <7,-1>
+ * @export
+ * @param {number[]} estringB
+ * @param {number[]} estringA
+ * @returns
+ */
+export function estringDifference (estringB: number[], estringA: number[]) {
+    const lEstring: number[] = [];
+    let i = 0;
+    let j = 0;
+    let lValA = estringA[0];
+    let lValB = estringB[0];
+    let lCurVal = 0;
+
+    while (i < estringA.length || j < estringB.length) {
+        lCurVal = lEstring[lEstring.length - 1];
+        if (lValA === lValB) {
+            // Common segment. Collapse with current segment or create new one.
+            if (lCurVal > 0) {
+                lEstring[lEstring.length - 1] = lCurVal + Math.abs(lValA);
+            } else {
+                lEstring.push(Math.abs(lValA));
+            }
+            lValA = estringA[++i];
+            lValB = estringB[++j];
+            continue;
+        }
+
+        if (Math.sign(lValA) === Math.sign(lValB)) {
+            if (lValA > 0) {
+                // positive sign. lValB can only be smaller than lValA
+                // (otherwise estringA contains gaps not accounted for in
+                // estringB)
+                if (lValB > lValA) return undefined;    // error
+
+                if (lCurVal > 0) {
+                    lEstring[lEstring.length - 1] = lCurVal + lValB;
+                } else {
+                    lEstring.push(lValB);
+                }
+                lValA -= lValB;
+                lValB = estringB[++j];
+                continue;
+            }
+
+            // negative sign. we keep as much as possible from string A
+
+            if (lValA > lValB) {    // take all lValA
+                if (lCurVal > 0) {
+                    lEstring[lEstring.length - 1] = lCurVal - lValA;
+                } else {
+                    lEstring.push(Math.abs(lValA));
+                }
+                lValA = estringA[++i];
+                lValB -= lValA;
+                continue;
+            } else {
+                // this shan't happen: estringB can't introduce less gaps than
+                // estringA does.
+                return undefined;
+            }
+
+        }
+
+        // opposite signs: if valB is negative, it introduces a gap that must
+        // be kept.
+        // if valB is positive, then estringA introduces a gap that is not in
+        // estringB, which is not possible.
+        if (lValB < 0) {
+            if (lCurVal < 0) {
+                lEstring[lEstring.length - 1] = lCurVal + lValB;
+            } else {
+                lEstring.push(lValB);
+            }
+            lValB = estringB[++j];
+        } else {
+            return undefined;
+        }
+    }
+
+    return lEstring;
+}
+
+/**
  * Edit strings catenation.
  *
  * @export
