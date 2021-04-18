@@ -96,8 +96,7 @@
                 }
             }
 
-            var msa = new biomsa.BioMSA();
-            msa.align(sequences).then(result => {
+            biomsa.align(sequences).then(result => {
                 document.getElementById('output').value = result.join('\n');
                 let acc = '';
                 for (let i = 0; i < result.length; i++) {

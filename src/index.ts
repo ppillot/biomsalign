@@ -2,7 +2,7 @@
  * @file index
  * @author Paul Pillot <paul.pillot@libmol.org>
  * @license MIT
- * @copyright 2020
+ * @copyright 2020-2021
  */
 
 import {
@@ -17,13 +17,9 @@ import Log from './utils/logger';
 import { centerStarNoAlign, noalignPair } from './align/noalign';
 import { estringTransform } from './utils/estring';
 
-export class BioMSA {
-    private sequences: TSequence[];
-    private typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.PROTEIN;
-
-    constructor() {
-        this.sequences = [];
-    }
+class BioMSAClass {
+    private sequences: TSequence[] = [];
+    private typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.NUCLEIC;
 
     public addSequence(seq: string | string[]) {
         if (Array.isArray(seq)) {
@@ -108,3 +104,5 @@ export class BioMSA {
     }
 
 }
+const BioMSA = new BioMSAClass();
+export default BioMSA;
