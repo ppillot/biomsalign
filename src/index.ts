@@ -14,7 +14,7 @@ import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters } from './align/params';
 import { pairwiseAlignment } from './align/align';
 import { progressiveAlignment } from "./align/progressive.alignment";
 import Log from './utils/logger';
-import { noalignPair } from './align/noalign';
+import { centerStarNoAlign, noalignPair } from './align/noalign';
 import { estringTransform } from './utils/estring';
 
 export class BioMSA {
@@ -72,9 +72,10 @@ export class BioMSA {
 
             if (DEBUG) Log.add('Get sequences type');
 
+            const doNoAlign = this.sequences.some(seq => seq.rawSeq.length > 1600);
             if (this.sequences.length == 2) {
                 let lEStrings: number[][];
-                if (Math.max(this.sequences[0].rawSeq.length, this.sequences[1].rawSeq.length) > 1600) {
+                if (doNoAlign) {
                     lEStrings = noalignPair(this.sequences[0], this.sequences[1], lParam);
                 } else {
                     let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
@@ -90,9 +91,14 @@ export class BioMSA {
 
                 return resolve(lAlignment);
             } else {
-                let lResult = progressiveAlignment(this.sequences, lParam);
+
+                let lResult = doNoAlign ?
+                    centerStarNoAlign(this.sequences, lParam)
+                    : progressiveAlignment(this.sequences, lParam);
 
                 if (DEBUG) Log.summary();
+
+                if (!lResult) return reject('An error occured');
 
                 return resolve(lResult);
             }

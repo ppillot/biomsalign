@@ -332,6 +332,17 @@ export function estringLength (estring: number[]): number {
     return lSize;
 }
 
+export function estringCountPositive (estring: number[]) {
+    let lCount = 0;
+    let lVal = 0;
+    for (let i = 0; i < estring.length; i++) {
+        lVal = estring[i];
+        if (lVal < 0) continue;
+        lCount += lVal;
+    }
+    return lCount;
+}
+
 /**
  * Convert an Edit string to a vector of indices. Negative estring values (in-
  * dels) are encoded as -1. Positive values are encoded as an increasing sequence

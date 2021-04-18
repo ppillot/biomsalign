@@ -56,7 +56,7 @@ import { DEBUG, TAlignmentParam } from "./params";
 import Log from "../utils/logger";
 import { hammingWeight } from "../utils/bitarray";
 import { ALIGNOPT, pairwiseAlignment } from "./align";
-import { epath2estring, EPATH_2_STRING, estringCat, estringLength } from "../utils/estring";
+import { epath2estring, EPATH_2_STRING, estringCat, estringCountPositive, estringDifference, estringLength, estringMerge, estringProduct, estringTransform } from "../utils/estring";
 
 type TRange = {
     diagId: number,
@@ -72,6 +72,11 @@ type TMinzStore = {
     count: number
 }
 
+const KSIZE = 8;    // fits in 16bits
+const WSIZE = 16;
+const EXTENSION_THRESHOLD = KSIZE/4; // don't extend when more than 25% difference
+
+
 /**
  *
  *
@@ -83,7 +88,7 @@ type TMinzStore = {
  * Weighted minimizer sampling improves long read mapping, Bioinformatics,
  * Volume 36, Issue Supplement_1, July 2020, Pages i111–i118
  */
-export function extractMinimizers (seq: TSequence, ksize: number, wsize: number): [Map<number, number[]>, TMinzStore, Uint16Array] {
+export function extractMinimizers (seq: TSequence, ksize: number, wsize: number): TMinzComp {
 
     const lMinzMap: Map<number, number[]> = new Map();
     const lQueue = new DEQueue<number>(wsize);
@@ -181,16 +186,22 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
     return [lMinzMap, lStoreMinz, lKarr];
 }
 
+type TMinzComp = [Map<number, number[]>, TMinzStore, Uint16Array];
+function isMinzComp(o: TSequence|TMinzComp): o is TMinzComp {
+    return Array.isArray(o) && o.length === 3;
+}
+export function noalignPair(
+    seqA: TSequence,
+    seqB: TSequence,
+    pAlignParam: TAlignmentParam,
+    pMinzA?: TMinzComp,
+    pMinzB?: TMinzComp
+) {
 
-export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlignmentParam) {
-
-    const KSIZE = 8;    // fits in 16bits
-    const WSIZE = 16;
-    const EXTENSION_THRESHOLD = KSIZE/4; // don't extend when more than 25% difference
     let lDebugStats: {[k: string]: Partial<{a: any, b: any, all: any}>} = {};
 
-    const [lMinzA, lMinzAArr, lKmerA] = extractMinimizers(seqA, KSIZE, WSIZE);
-    const [lMinzB, lMinzBArr, lKmerB] = extractMinimizers(seqB, KSIZE, WSIZE);
+    const [lMinzA, lMinzAArr, lKmerA] = pMinzA ?? extractMinimizers(seqA, KSIZE, WSIZE);
+    const [lMinzB, lMinzBArr, lKmerB] = pMinzB ?? extractMinimizers(seqB, KSIZE, WSIZE);
     if (DEBUG) {
         Log.add('Extract Minimizers');
         lDebugStats['Nb Minimizers'] = {a: lMinzAArr.count, b: lMinzBArr.count};
@@ -447,12 +458,8 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
         // For now, just append the missing part. Ultimately, assess, depending
         // on the tail length if a SW alignmnent is deemed necessary.
 
-    if (lDiag.end < seqA.encodedSeq.length) {
-        lEpathA.push(seqA.encodedSeq.length - lDiag.end + 1);
-    }
-    if (lDiag.end - lDiag.diagId < seqB.encodedSeq.length) {
-        lEpathB.push(seqB.encodedSeq.length - lDiag.end + 1 + lDiag.diagId);
-    }
+    sanitizeEpathEnd(lEpathA, seqA.encodedSeq.length);
+    sanitizeEpathEnd(lEpathB, seqB.encodedSeq.length);
 
     let lEstringA = epath2estring(lEpathA, EPATH_2_STRING.NO_REVERSE);
     let lEstringB = epath2estring(lEpathB, EPATH_2_STRING.NO_REVERSE);
@@ -471,6 +478,20 @@ export function noalignPair(seqA: TSequence, seqB: TSequence, pAlignParam: TAlig
 }
 
 /**
+ * Given an epath, it ensures that the sum of its positive values equals the
+ * target length.
+ *
+ * @param {number[]} epath
+ * @param {number} targetLength
+ */
+function sanitizeEpathEnd(epath: number[], targetLength: number) {
+    let lCount = estringCountPositive(epath);
+    let lDelta = targetLength - lCount;
+    if (lDelta > 0) epath.push(lDelta);
+    else if (lDelta < 0) epath[epath.length - 1] += lDelta;
+}
+
+/**
  * Returns the number of different letters in DNA alphabet between 2 kmers
  * encoded as numbers, using bitwise operations
  *
@@ -484,5 +505,62 @@ export function dnaHammingDistance (a: number, b: number) {
     let c = a ^ b;  // set bit for pair of bits that are different
     c = (c & 0x55555555) | ((c >> 1) & 0x55555555); // intersect with 010101... to retain only the lowest bit in each pair
     return hammingWeight(c);
+
+}
+
+/**
+ * Align multiple (long) sequences using the center-star method.
+ *
+ * @export
+ * @param {TSequence[]} pSeq
+ * @param {TAlignmentParam} pAlignParam
+ * @returns
+ */
+export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentParam) {
+
+    let lMinz = pSeq.map(seq => { return extractMinimizers(seq, KSIZE, WSIZE) });
+
+    // TODO: find center sequence
+    let lCenter = 0;
+    let lEStrings: number[][] = [];
+    let lCenterEString: number[] = [];
+    let lCenterEStringRaw: number[][] = [];
+
+    for (let i = 0; i < lMinz.length; i++) {
+        if (i === lCenter) continue;
+
+        let lEsAln = noalignPair(pSeq[lCenter], pSeq[i], pAlignParam, lMinz[lCenter], lMinz[i]);
+
+        // Center Edit strings combines the Edit strings from the alignment to the
+        // current sequence with its previous edit strings.
+        lCenterEString = lCenterEString.length === 0
+            ? lEsAln[0]
+            : estringMerge(lCenterEString, lEsAln[0]);
+
+        // Keep track of what was this alignment edit string for center sequence
+        // This is used to make a diff, at next iteration.
+        lCenterEStringRaw[i] = lEsAln[0];
+
+        // Edit string to align this sequence with the center. It will be
+        // modified to account for other sequences introduced editions
+        lEStrings[i] = lEsAln[1];
+    }
+
+    for (let i = 0; i < lMinz.length; i++) {
+        if (i === lCenter) {
+            lEStrings[i] = lCenterEString;
+            continue;
+        }
+        let lDiff = estringDifference(lCenterEString, lCenterEStringRaw[i]);
+        if (!lDiff) {
+            console.error('An error occured while computing the center diff. for sequence #' + i, lCenterEString, lCenterEStringRaw[i]);
+            console.dir(lEStrings)
+            console.dir(lCenterEStringRaw)
+            return false;
+        }
+        lEStrings[i] = estringProduct(lDiff, lEStrings[i]);
+    }
+
+    return lEStrings.map((es, idx) => { return estringTransform(pSeq[idx].rawSeq, es)});
 
 }
