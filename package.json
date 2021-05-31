@@ -13,9 +13,17 @@
         "build": "tsc",
         "lint": "eslint '*/**/*.{js,ts,tsx}' --quiet --fix"
     },
-    "keywords": [],
-    "author": "",
-    "license": "ISC",
+    "keywords": [
+        "sequence",
+        "alignment",
+        "DNA",
+        "protein",
+        "clustal",
+        "multiple",
+        "minimizer"
+    ],
+    "author": "ppillot",
+    "license": "MIT",
     "devDependencies": {
         "@types/jest": "^26.0.14",
         "@typescript-eslint/eslint-plugin": "^4.4.1",
