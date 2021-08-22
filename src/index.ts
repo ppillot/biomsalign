@@ -54,6 +54,7 @@ class BioMSAClass {
         const msa = new Promise<any[]>((resolve, reject) => {
             if (seqArr !== undefined) {
                 if (Array.isArray(seqArr)) {
+                    this.reset();
                     this.addSequence(seqArr);
                 } else {
                     return reject('Array of sequences expected');
