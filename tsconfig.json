@@ -9,6 +9,7 @@
         "noImplicitAny": true,
         "sourceMap": true,
         "esModuleInterop": true,
+        "moduleResolution": "node"
     },
     "include": ["src"],
     "exclude": ["node_modules", "**/__tests__/*"]
