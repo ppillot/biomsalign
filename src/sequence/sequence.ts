@@ -22,6 +22,7 @@ export type TSequence = {
 const regAmAc = /^[acgtrndeqhilkmfpswyv]+$/i;
 const regNotRNA = /[^acgu]/i;
 const regNotDNA = /[^acgt]/i;
+const CODE_NOT_FOUND = 255;
 
 /**
  * Guess the type of sequence from its raw content
@@ -44,6 +45,7 @@ export function getSequenceType(seq: string) {
  * Index aa codes based on ASCII code
  */
 export const aaToNum = new Uint8Array(96);
+aaToNum.fill(CODE_NOT_FOUND);
 aaToNum[65] = 0; // A
 aaToNum[67] = 1; // C
 aaToNum[68] = 2; // D
@@ -70,6 +72,7 @@ aaToNum[95] = 20; // _
  * Index nucleotides codes based on ASCII
  */
 export const nucToNum = new Uint8Array(96);
+aaToNum.fill(CODE_NOT_FOUND);
 nucToNum[65] = 0; // A
 nucToNum[67] = 1; // C
 nucToNum[71] = 2; // G
@@ -88,12 +91,54 @@ nucToNum[85] = 3; // U, uracile aligns with thymine
 export function encodeSeqToNum(seq: string, type: SEQUENCE_TYPE) {
     const encodedTab = new Uint8Array(seq.length);
     const convTable = type === SEQUENCE_TYPE.PROTEIN ? aaToNum : nucToNum;
+    let lEncoding = 0;
 
     for (let i = 0, imax = seq.length; i < imax; i++) {
-        encodedTab[i] = convTable[seq.charCodeAt(i)];
+        lEncoding = convTable[seq.charCodeAt(i)];
+        if (lEncoding === CODE_NOT_FOUND) lEncoding = setRandomCode(seq[i], type);
+
+        encodedTab[i] =  lEncoding;
     }
 
     return encodedTab;
+}
+
+/**
+ * Interpolates ambiguous letters in sequences by picking randomly a standard
+ * residue amongst the possible choices.
+ * @param letter
+ * @param type
+ * @returns
+ */
+function setRandomCode(letter: string, type: SEQUENCE_TYPE) {
+    const lRand = Math.floor(Math.random() * 100);
+    switch (type) {
+        case SEQUENCE_TYPE.NUCLEIC:
+            switch (letter) {
+                case 'M': return [0, 1][lRand % 2]; // A or C (amino)
+                case 'R': return [0, 2][lRand % 2]; // A or G (purine)
+                case 'W': return [0, 3][lRand % 2]; // A or T
+                case 'S': return [1, 2][lRand % 2]; // C or G
+                case 'Y': return [1, 3][lRand % 2]; // C or T (pyrimidine)
+                case 'K': return [2, 3][lRand % 2]; // G or T (keto)
+                case 'V': return [0, 1, 2][lRand % 3]; // A or C or G
+                case 'H': return [0, 1, 3][lRand % 3]; // A or C or T
+                case 'D': return [0, 2, 3][lRand % 3]; // A or G or T
+                case 'B': return [1, 2, 3][lRand % 3]; // C or G or T
+                case 'N': // passthrough intentional
+                default: return lRand % 4;
+            }
+
+        case SEQUENCE_TYPE.PROTEIN:
+        default:
+            switch (letter) {
+                case 'B': return [2, 11][lRand % 2]; // Asx
+                case 'Z': return [3, 13][lRand % 2]; // Glx
+                case 'J': return [7, 9 ][lRand % 2]; // Xle (Leu or Ile)
+                case 'X': // passthrough intentional
+                default: return lRand % 20;
+            }
+    }
 }
 
 /**
