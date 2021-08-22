@@ -293,6 +293,12 @@ export function noalignPair(
     for (let i = 1; i < lDiagList.length; i++) {
         let lCurrentSegment = lDiagList[i];
 
+        // Temporary fix here: due to crude sorting of diagonals, overlaps are
+        // not taken into account. The following prevents intractable situations
+        // but it does not guarantee the best outcome.
+
+        if (lCurrentSegment.begin < lPrevSegment.end) continue;
+
         // TODO: when difference between end and begin is >> KSIZE (e.g. 400),
         // there are likely unmapped gaps. It might be useful to speed up
         // matches using shorter Kmers/windows. Test the overhead + noise
