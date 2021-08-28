@@ -105,7 +105,7 @@ export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: any) {
         m.matrix,
         opt?.gapExtend ? -opt.gapExtend * 2 : m.center
     );
-    const gapOP = m.gapOP;
+    const gapOP: number = opt?.gapOpen ?? m.gapOP;
 
     return {
         type: pTypeSeq,
