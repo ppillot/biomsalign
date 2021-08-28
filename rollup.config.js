@@ -6,13 +6,13 @@ export default {
     input: 'src/index.ts',
     output: [
       {
-        file: pkg.main,
+        file: 'build/biomsa.js',
         format: 'umd',
         name: 'biomsa',
         sourcemap: true
       },
       {
-        file: pkg.module,
+        file: 'build/biomsa.esm.js',
         format: 'es',
         sourcemap: true
       },
