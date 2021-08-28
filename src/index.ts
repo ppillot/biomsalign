@@ -99,6 +99,8 @@ class BioMSAClass {
             throw new Error('String type expected for sequences to add.');
         }
 
+        seq = seq.toUpperCase();
+
         const type = getSequenceType(seq);
         if (this.sequences.length === 0) {
             this.typeSeq = type;
