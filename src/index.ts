@@ -17,6 +17,8 @@ import Log from './utils/logger';
 import { centerStarNoAlign, noalignPair } from './align/noalign';
 import { estringTransform } from './utils/estring';
 
+type TAlignMethod = 'diag'|'complete'|'auto';
+type TAlignSequenceType = 'amino'|'nucleic'|'auto';
 type TAlignOpt = {
     /**
      * Gap open penalty (generally a negative number)
@@ -45,14 +47,14 @@ type TAlignOpt = {
      * strategies.
      * @default 'auto'
      */
-    method   : 'diag'|'complete'|'auto',
+    method   : TAlignMethod,
 
     /**
      * Sequence type
      * `auto` performs a detection based on sequences content
      * @default 'auto'
      */
-    type     : 'amino'|'nucleic'|'auto',
+    type     : TAlignSequenceType,
 
     /**
      * Substitution scoring matrix. Residues are sorted lexically by their 1
@@ -69,10 +71,26 @@ type TAlignOpt = {
     gapchar  : string
 }
 
+type TBioMSAConfig = {
+    sequenceType: TAlignSequenceType,
+    gapchar: string,
+    alignmentMethod: TAlignMethod,
+    debug: boolean
+}
+
+const DEFAULT_CONFIG: TBioMSAConfig = {
+    sequenceType: 'auto',
+    gapchar: '-',
+    alignmentMethod: 'auto',
+    debug: false,
+}
 
 class BioMSAClass {
     private sequences: TSequence[] = [];
     private typeSeq = SEQUENCE_TYPE.UNSET;
+    private config: TBioMSAConfig = {
+        ...DEFAULT_CONFIG
+    }
 
     /**
      * Add sequence to the internal list of sequences of the aligner.
@@ -82,7 +100,7 @@ class BioMSAClass {
      * @throws Will throw an exception if sequence added is not of same type as
      *      the other internal sequences.
      */
-    public addSequence(seq: string | string[]) {
+    private addSequence(seq: string | string[]) {
 
             // Handle Array parameter overload (recursive)
 
@@ -96,16 +114,29 @@ class BioMSAClass {
             // Sanity checks
 
         if (typeof seq !== 'string') {
-            throw new Error('String type expected for sequences to add.');
+            throw new TypeError('String type expected for sequences to add.');
         }
-
         seq = seq.toUpperCase();
 
-        const type = getSequenceType(seq);
-        if (this.sequences.length === 0) {
-            this.typeSeq = type;
-        } else if (this.typeSeq !== type) {
-            throw new Error('All sequences must be of same type.');
+            // In sequence type automatic detection mode, some checks are added
+            // to infer sequence type and sequence type consistency
+            // In user defined mode, we let the user do their own checks and we
+            // create the sequences eagerly (unrecognized residues are interpolated
+            // randomly)
+
+        if (this.config.sequenceType === 'auto') {
+            const type = getSequenceType(seq);
+
+                // First one
+
+            if (this.typeSeq === SEQUENCE_TYPE.UNSET) {
+                this.typeSeq = type;
+
+                // Once set, all the others must follow
+
+            } else if (this.typeSeq !== type) {
+                throw new Error('All sequences must be of same type.');
+            }
         }
 
             // Add sequence to store
@@ -116,11 +147,40 @@ class BioMSAClass {
     /**
      * Reset the internal sequence store content
      */
-    public reset() {
+    private reset() {
         this.sequences = [];
         this.typeSeq = SEQUENCE_TYPE.UNSET;
+        this.setDefaultConfiguration();
     }
 
+    private setDefaultConfiguration () {
+        this.config = {
+            ...DEFAULT_CONFIG
+        }
+    }
+
+    private setUserConfiguration (opt: Partial<TAlignOpt>) {
+        function isValid<K>(value: any, allowed: K[]) {
+            return (allowed.some(v => v == value));
+        }
+
+        if (
+            opt.method
+            && isValid<TAlignOpt['method']>(opt.method, ['complete', 'diag'])
+        ) this.config.alignmentMethod = opt.method;
+
+        if (
+            opt.type
+            && isValid<TAlignOpt['type']>(opt.type, ['amino', 'nucleic'])
+        ) {
+            this.config.sequenceType = opt.type;
+            this.typeSeq = (opt.type === 'amino') ? SEQUENCE_TYPE.PROTEIN : SEQUENCE_TYPE.NUCLEIC;
+        }
+
+        if (opt.gapchar?.length === 1) this.config.gapchar = opt.gapchar;
+
+        if (opt.debug !== undefined) this.config.debug = !!opt.debug;
+    }
 
     /**
      * Main alignment function. Takes an array of sequences (strings) as an
@@ -130,31 +190,40 @@ class BioMSAClass {
      * @param seqArr
      * @returns { Promise<string[]> }
      */
-    public align(seqArr?: string[]) {
+    public align(seqArr: string[], opt?: Partial<TAlignOpt>) {
         if (DEBUG) Log.start();
 
         const msa = new Promise<any[]>((resolve, reject) => {
 
                 // Sequences prerequisites
 
-            if (seqArr !== undefined) {
-                if (Array.isArray(seqArr)) {
-                    this.reset();
-                    this.addSequence(seqArr);
-                } else {
-                    return reject('Array of sequences expected');
-                }
-            } else if (this.sequences.length < 2) {
+            if (!Array.isArray(seqArr)
+                || seqArr.some(v => typeof(v) !== 'string')
+            ) {
+                return reject('Array of sequences expected');
+            }
+
+            if (seqArr.length < 2) {
                 return reject('At least 2 sequences are required.');
             }
 
+            this.reset();
+            if (opt) this.setUserConfiguration(opt);
+
+            this.addSequence(seqArr);
+
             if (DEBUG) Log.add('Prepared sequences');
 
-            const lParam = getAlignmentParameters(this.sequences[0].type);
+            const lParam = getAlignmentParameters(this.typeSeq);
 
             if (DEBUG) Log.add('Get sequences type');
 
-            const doNoAlign = this.sequences.some(seq => seq.rawSeq.length > 1600);
+            let doNoAlign = false;
+            if (this.config.alignmentMethod === 'auto')
+                doNoAlign = this.sequences.some(seq => seq.rawSeq.length > 1600);
+            else doNoAlign = this.config.alignmentMethod === 'diag';
+
+                // Start alignment
 
             if (this.sequences.length == 2) {
                 let lEStrings: number[][];
@@ -175,7 +244,7 @@ class BioMSAClass {
 
                 if (DEBUG) Log.summary();
 
-                let lAlignment = [
+                const lAlignment = [
                     estringTransform(this.sequences[0].rawSeq, lEStrings[0]),
                     estringTransform(this.sequences[1].rawSeq, lEStrings[1])
                 ];
