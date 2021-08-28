@@ -19,11 +19,11 @@ export type TSequence = {
     type: SEQUENCE_TYPE;
 };
 
-const regAmino    = /^[acgtrndeqhilkmfpswyv]+$/i;
-const regExtNuc   = /^[abcdghkmnrstuvwy]+$/i;
-const regExtAmino = /^[abcgtrndeqhijlkmfpswyuvxz]+$/i;
-const regNotRNA   = /[^acgu]/i;
-const regNotDNA   = /[^acgt]/i;
+const regAmino    = /^[ACGTRNDEQHILKMFPSWYV]+$/;
+const regExtNuc   = /^[ABCDGHKMNRSTUVWY]+$/i;
+const regExtAmino = /^[ABCGTRNDEQHIJLKMFPSWYUVXZ]+$/i;
+const regNotRNA   = /[^ACGU]/i;
+const regNotDNA   = /[^ACGT]/i;
 const CODE_NOT_FOUND = 255;
 
 /**
@@ -52,17 +52,20 @@ function guessSequenceType (seq: string) {
     const SAMPLE_SIZE = 100;
     let lNucScore = 0;
     const LEN = Math.min(seq.length, SAMPLE_SIZE);
-    let lCode = 0;
 
     for (let i = 0; i < LEN; i++) {
-        lCode = nucToNum[seq.charCodeAt(i)];
-        if (lCode === CODE_NOT_FOUND) continue;
-        lNucScore ++;
+        switch (seq[i]) {
+            case 'A':
+            case 'T':
+            case 'U':
+            case 'G':
+            case 'C':
+            case 'N':
+                lNucScore ++;
+        }
     }
 
-    const lCutoff = Math.log(LEN) / Math.log(4);    // 1 in 4, 2 in 20, 3 in 100
-
-    if (LEN - lNucScore < lCutoff) return SEQUENCE_TYPE.NUCLEIC;
+    if (lNucScore / LEN > Math.SQRT1_2) return SEQUENCE_TYPE.NUCLEIC;
 
     return SEQUENCE_TYPE.PROTEIN;
 }

@@ -22,7 +22,7 @@ test('Detects extended amino acids codes', () => {
 });
 
 test('Estimates likelyhood of nucleic type', () => {
-    const seq = 'ATGCNTGAATGTACCATACGGTA';
+    const seq = 'ATGCNTGAAMGTACCATACGGTA';
     expect(getSequenceType(seq)).toBe(SEQUENCE_TYPE.NUCLEIC);
 });
 
