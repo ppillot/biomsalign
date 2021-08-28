@@ -19,7 +19,7 @@ import { estringTransform } from './utils/estring';
 
 type TAlignMethod = 'diag'|'complete'|'auto';
 type TAlignSequenceType = 'amino'|'nucleic'|'auto';
-type TAlignOpt = {
+export type TAlignOpt = {
     /**
      * Gap open penalty (generally a negative number)
      * @default -300|-400 set based on the sequence type
@@ -214,9 +214,13 @@ class BioMSAClass {
 
             if (DEBUG) Log.add('Prepared sequences');
 
-            const lParam = getAlignmentParameters(this.typeSeq);
+            const lParam = getAlignmentParameters(this.typeSeq , opt);
 
             if (DEBUG) Log.add('Get sequences type');
+
+                // Set heuristics used:
+                // if sequences are long and user does not dislike it, go for
+                // fast alignment.
 
             let doNoAlign = false;
             if (this.config.alignmentMethod === 'auto')
@@ -250,18 +254,19 @@ class BioMSAClass {
                 ];
 
                 return resolve(lAlignment);
-            } else {
-
-                let lResult = doNoAlign ?
-                    centerStarNoAlign(this.sequences, lParam)
-                    : progressiveAlignment(this.sequences, lParam);
-
-                if (DEBUG) Log.summary();
-
-                if (!lResult) return reject('An error occured');
-
-                return resolve(lResult);
             }
+
+
+            let lResult = doNoAlign ?
+                centerStarNoAlign(this.sequences, lParam)
+                : progressiveAlignment(this.sequences, lParam);
+
+            if (DEBUG) Log.summary();
+
+            if (!lResult) return reject('An error occured');
+
+            return resolve(lResult);
+
         });
 
         return msa;

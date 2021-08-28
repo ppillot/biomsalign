@@ -5,6 +5,8 @@
  * @copyright 2020
  */
 
+import { TAlignOpt } from "..";
+
 export enum SEQUENCE_TYPE {
     PROTEIN,
     NUCLEIC,
@@ -99,14 +101,17 @@ function addCenter(matrix: number[][], center: number) {
 
 export type TAlignmentParam = ReturnType<typeof getAlignmentParameters>
 
-export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: any) {
+export function getAlignmentParameters(pTypeSeq: SEQUENCE_TYPE, opt?: Partial<TAlignOpt>) {
     const m = (pTypeSeq === SEQUENCE_TYPE.PROTEIN) ? VTML240 : BLASTZ;
 
+    let lMatrix = opt?.matrix ?? m.matrix;
+    let lCenter = opt?.gapextend ? - opt.gapextend * 2 : m.center;
+
     const scoringMatrix = addCenter(
-        m.matrix,
-        opt?.gapExtend ? -opt.gapExtend * 2 : m.center
+        lMatrix,
+        lCenter
     );
-    const gapOP: number = opt?.gapOpen ?? m.gapOP;
+    const gapOP: number = opt?.gapopen ?? m.gapOP;
 
     return {
         type: pTypeSeq,
