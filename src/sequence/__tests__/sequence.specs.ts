@@ -16,6 +16,16 @@ test('Detects Proteic', () => {
     expect(getSequenceType(seq)).toBe(SEQUENCE_TYPE.PROTEIN);
 });
 
+test('Detects extended amino acids codes', () => {
+    const seq = 'ATMXZJ';
+    expect(getSequenceType(seq)).toBe(SEQUENCE_TYPE.PROTEIN);
+});
+
+test('Estimates likelyhood of nucleic type', () => {
+    const seq = 'ATGCNTGAATGTACCATACGGTA';
+    expect(getSequenceType(seq)).toBe(SEQUENCE_TYPE.NUCLEIC);
+});
+
 test('Throws error when cannot detect sequence type', () => {
     const seq = 'BOU';
     expect(() => {

@@ -19,9 +19,11 @@ export type TSequence = {
     type: SEQUENCE_TYPE;
 };
 
-const regAmAc = /^[acgtrndeqhilkmfpswyv]+$/i;
-const regNotRNA = /[^acgu]/i;
-const regNotDNA = /[^acgt]/i;
+const regAmino    = /^[acgtrndeqhilkmfpswyv]+$/i;
+const regExtNuc   = /^[abcdghkmnrstuvwy]+$/i;
+const regExtAmino = /^[abcgtrndeqhijlkmfpswyuvxz]+$/i;
+const regNotRNA   = /[^acgu]/i;
+const regNotDNA   = /[^acgt]/i;
 const CODE_NOT_FOUND = 255;
 
 /**
@@ -34,11 +36,35 @@ export function getSequenceType(seq: string) {
         return SEQUENCE_TYPE.NUCLEIC
     };
 
-    if (regAmAc.test(seq)) {
-        return SEQUENCE_TYPE.PROTEIN;
-    }
+    const isExtendedNuc = regExtNuc.test(seq);
+    const isAmino = regAmino.test(seq);
+
+    if (isAmino && !isExtendedNuc) return SEQUENCE_TYPE.PROTEIN;
+
+    if (isAmino && isExtendedNuc) return guessSequenceType(seq);
+
+    if (regExtAmino.test(seq)) return SEQUENCE_TYPE.PROTEIN;
 
     throw new Error('Unrecognized sequence type: ' + seq);
+}
+
+function guessSequenceType (seq: string) {
+    const SAMPLE_SIZE = 100;
+    let lNucScore = 0;
+    const LEN = Math.min(seq.length, SAMPLE_SIZE);
+    let lCode = 0;
+
+    for (let i = 0; i < LEN; i++) {
+        lCode = nucToNum[seq.charCodeAt(i)];
+        if (lCode === CODE_NOT_FOUND) continue;
+        lNucScore ++;
+    }
+
+    const lCutoff = Math.log(LEN) / Math.log(4);    // 1 in 4, 2 in 20, 3 in 100
+
+    if (LEN - lNucScore < lCutoff) return SEQUENCE_TYPE.NUCLEIC;
+
+    return SEQUENCE_TYPE.PROTEIN;
 }
 
 /**
@@ -117,8 +143,8 @@ function setRandomCode(letter: string, type: SEQUENCE_TYPE) {
             switch (letter) {
                 case 'M': return [0, 1][lRand % 2]; // A or C (amino)
                 case 'R': return [0, 2][lRand % 2]; // A or G (purine)
-                case 'W': return [0, 3][lRand % 2]; // A or T
-                case 'S': return [1, 2][lRand % 2]; // C or G
+                case 'W': return [0, 3][lRand % 2]; // A or T (weak)
+                case 'S': return [1, 2][lRand % 2]; // C or G (strong)
                 case 'Y': return [1, 3][lRand % 2]; // C or T (pyrimidine)
                 case 'K': return [2, 3][lRand % 2]; // G or T (keto)
                 case 'V': return [0, 1, 2][lRand % 3]; // A or C or G
@@ -135,6 +161,7 @@ function setRandomCode(letter: string, type: SEQUENCE_TYPE) {
                 case 'B': return [2, 11][lRand % 2]; // Asx
                 case 'Z': return [3, 13][lRand % 2]; // Glx
                 case 'J': return [7, 9 ][lRand % 2]; // Xle (Leu or Ile)
+                case 'U': // passtrhough intentional    Selenocysteine
                 case 'X': // passthrough intentional
                 default: return lRand % 20;
             }
