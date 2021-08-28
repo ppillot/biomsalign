@@ -70,12 +70,21 @@ class BioMSAClass {
             if (DEBUG) Log.add('Get sequences type');
 
             const doNoAlign = this.sequences.some(seq => seq.rawSeq.length > 1600);
+
             if (this.sequences.length == 2) {
                 let lEStrings: number[][];
                 if (doNoAlign) {
-                    lEStrings = noalignPair(this.sequences[0], this.sequences[1], lParam);
+                    lEStrings = noalignPair(
+                        this.sequences[0],
+                        this.sequences[1],
+                        lParam
+                    );
                 } else {
-                    let lResult = pairwiseAlignment(this.sequences[0], this.sequences[1], lParam);
+                    let lResult = pairwiseAlignment(
+                        this.sequences[0],
+                        this.sequences[1],
+                        lParam
+                    );
                     lEStrings = lResult.estrings;
                 }
 
