@@ -8,6 +8,7 @@
 export enum SEQUENCE_TYPE {
     PROTEIN,
     NUCLEIC,
+    UNSET
 }
 
 export const DEBUG = true;

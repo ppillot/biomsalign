@@ -72,7 +72,7 @@ type TAlignOpt = {
 
 class BioMSAClass {
     private sequences: TSequence[] = [];
-    private typeSeq: SEQUENCE_TYPE = SEQUENCE_TYPE.NUCLEIC;
+    private typeSeq = SEQUENCE_TYPE.UNSET;
 
     /**
      * Add sequence to the internal list of sequences of the aligner.
@@ -118,7 +118,7 @@ class BioMSAClass {
      */
     public reset() {
         this.sequences = [];
-        this.typeSeq = SEQUENCE_TYPE.NUCLEIC;
+        this.typeSeq = SEQUENCE_TYPE.UNSET;
     }
 
 
