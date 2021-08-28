@@ -72,7 +72,7 @@ aaToNum[95] = 20; // _
  * Index nucleotides codes based on ASCII
  */
 export const nucToNum = new Uint8Array(96);
-aaToNum.fill(CODE_NOT_FOUND);
+nucToNum.fill(CODE_NOT_FOUND);
 nucToNum[65] = 0; // A
 nucToNum[67] = 1; // C
 nucToNum[71] = 2; // G
