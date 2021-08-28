@@ -14,6 +14,7 @@ export enum SEQUENCE_TYPE {
 }
 
 export const DEBUG = true;
+export const DEFAULT_GAP_CHAR = '-';
 
 const BLOSUM62 = {
     matrix: [

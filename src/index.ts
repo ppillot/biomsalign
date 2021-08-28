@@ -10,12 +10,12 @@ import {
     getSequenceType,
     TSequence,
 } from './sequence/sequence';
-import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters } from './align/params';
+import { DEBUG, SEQUENCE_TYPE, getAlignmentParameters, DEFAULT_GAP_CHAR } from './align/params';
 import { pairwiseAlignment } from './align/align';
 import { progressiveAlignment } from "./align/progressive.alignment";
 import Log from './utils/logger';
 import { centerStarNoAlign, noalignPair } from './align/noalign';
-import { estringTransform } from './utils/estring';
+import { applyEstring } from './utils/estring';
 
 type TAlignMethod = 'diag'|'complete'|'auto';
 type TAlignSequenceType = 'amino'|'nucleic'|'auto';
@@ -80,7 +80,7 @@ type TBioMSAConfig = {
 
 const DEFAULT_CONFIG: TBioMSAConfig = {
     sequenceType: 'auto',
-    gapchar: '-',
+    gapchar: DEFAULT_GAP_CHAR,
     alignmentMethod: 'auto',
     debug: false,
 }
@@ -193,7 +193,7 @@ class BioMSAClass {
     public align(seqArr: string[], opt?: Partial<TAlignOpt>) {
         if (DEBUG) Log.start();
 
-        const msa = new Promise<any[]>((resolve, reject) => {
+        const msa = new Promise<string[]>((resolve, reject) => {
 
                 // Sequences prerequisites
 
@@ -229,8 +229,9 @@ class BioMSAClass {
 
                 // Start alignment
 
+            let lEStrings: number[][];
             if (this.sequences.length == 2) {
-                let lEStrings: number[][];
+
                 if (doNoAlign) {
                     lEStrings = noalignPair(
                         this.sequences[0],
@@ -246,26 +247,19 @@ class BioMSAClass {
                     lEStrings = lResult.estrings;
                 }
 
-                if (DEBUG) Log.summary();
+            } else {
 
-                const lAlignment = [
-                    estringTransform(this.sequences[0].rawSeq, lEStrings[0]),
-                    estringTransform(this.sequences[1].rawSeq, lEStrings[1])
-                ];
+                lEStrings = doNoAlign
+                    ? centerStarNoAlign(this.sequences, lParam)
+                    : progressiveAlignment(this.sequences, lParam);
 
-                return resolve(lAlignment);
             }
-
-
-            let lResult = doNoAlign ?
-                centerStarNoAlign(this.sequences, lParam)
-                : progressiveAlignment(this.sequences, lParam);
 
             if (DEBUG) Log.summary();
 
-            if (!lResult) return reject('An error occured');
+            const lAlignment = applyEstring(this.sequences, lEStrings, { gapchar: this.config.gapchar });
+            return resolve(lAlignment);
 
-            return resolve(lResult);
 
         });
 

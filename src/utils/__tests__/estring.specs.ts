@@ -3,8 +3,15 @@ import { estringTransform, estringProduct, estringCat, epath2estring, estringMer
 test('Transforms a string', () => {
     const lTxt = 'MQTIF';
     const lEString = [3,-1,2];
-    let lTxt2 = estringTransform(lTxt, lEString);
+    let lTxt2 = estringTransform(lTxt, lEString, { gapchar: '-' });
     expect(lTxt2).toBe('MQT-IF');
+});
+
+test('Transforms a string with optional format', () => {
+    const lTxt = 'MQTIF';
+    const lEString = [3,-1,2];
+    let lTxt2 = estringTransform(lTxt, lEString, { gapchar: '_' });
+    expect(lTxt2).toBe('MQT_IF');
 });
 
 test('Multiplies estrings', () => {
@@ -12,10 +19,10 @@ test('Multiplies estrings', () => {
     const lEString1 = [3,-1,2,-1,3];
     const lEString2 = [5,-2,2,-2,1];
     const lProduct = estringProduct(lEString2, lEString1);
-    const lTxt2 = estringTransform(lTxt, lProduct);
+    const lTxt2 = estringTransform(lTxt, lProduct, { gapchar: '-' });
     let lTxt3 = estringTransform(
-        estringTransform(lTxt, lEString1),
-        lEString2
+        estringTransform(lTxt, lEString1, { gapchar: '-' }),
+        lEString2, { gapchar: '-' }
     );
     expect(lTxt2).toBe(lTxt3);
 });

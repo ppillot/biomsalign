@@ -21,6 +21,22 @@
  * https://doi.org/10.1186/1471-2105-5-113
  */
 
+import { DEFAULT_GAP_CHAR } from "../align/params";
+import { TSequence } from "../sequence/sequence";
+
+type TAlignedSeqFormat = {
+    gapchar: string
+}
+
+export function applyEstring (pSeqArr: TSequence[], pEstring: number[][], opt?: Partial<TAlignedSeqFormat>) {
+    let lGapchar = opt?.gapchar ?? DEFAULT_GAP_CHAR;
+    let lResp: string[] = [];
+    for (let i = 0; i < pSeqArr.length; i ++) {
+        lResp.push(estringTransform(pSeqArr[i].rawSeq, pEstring[i], { gapchar: lGapchar }));
+    }
+    return lResp;
+}
+
 /**
  * Edits a string such as a sequence, by inserting gap symbols based on the
  * content of and Edit string.
@@ -30,13 +46,14 @@
  * @param {number[]} estring
  * @returns {string}    edited string
  */
-export function estringTransform (text: string, estring: number[]) {
+export function estringTransform (text: string, estring: number[], opt: TAlignedSeqFormat) {
     const lPieces: string[] = [];
+    const GAPCHAR = opt.gapchar;
     let lPos = 0;   // cursor in text
     for (let i = 0; i < estring.length; i++) {
         let n = estring[i];
         if (n < 0) {
-            lPieces.push('-'.repeat(-n));
+            lPieces.push(GAPCHAR.repeat(-n));
         } else {
             lPieces.push(text.substr(lPos, n));
             lPos += n;

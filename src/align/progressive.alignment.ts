@@ -145,14 +145,12 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
 
     // First alignment following guide tree
     const score1 = treeAlign(root, weights);
-    root.msa = computeMSA(root, seq);
-
-    let msa = sortMSA(root.msa, root.numSeq); // sort sequences in the order they came in
+    let lEstrings = sortMSA(root.estring.slice(), root.numSeq);
 
     if (DEBUG)
         Log.add('End MSA computation');
 
-    return msa;
+    return lEstrings;
 
 //================== For now, don't refine ====================
 
@@ -163,46 +161,38 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
     // First step: build a distance matrix based on identities, pondered
     // using Kimura method for long branches (effective mutations are >
     // to measured mutations)
-    const lDistMatrixKimura = distanceKimura(msa);
+    // const lDistMatrixKimura = distanceKimura(msa);
 
-    if (DEBUG)
-        Log.add('Distance Kimura');
+    // if (DEBUG)
+    //     Log.add('Distance Kimura');
 
-    // compute new tree
-    var tree2 = makeTree(lDistMatrixKimura, seq);
-    const root2 = tree2[tree2.length - 1] as InternalNode;
+    // // compute new tree
+    // var tree2 = makeTree(lDistMatrixKimura, seq);
+    // const root2 = tree2[tree2.length - 1] as InternalNode;
 
-    if (DEBUG)
-        Log.add('Build tree 2');
+    // if (DEBUG)
+    //     Log.add('Build tree 2');
 
-    // compare trees.
-    // Note: Impure function, it will modify tree2 if differences are found
-    // to take advantage of all the alignments already compared.
-    var treeIdentity = compareTrees(tree, tree2);
+    // // compare trees.
+    // // Note: Impure function, it will modify tree2 if differences are found
+    // // to take advantage of all the alignments already compared.
+    // var treeIdentity = compareTrees(tree, tree2);
 
-    if (treeIdentity === true) { // No possible improvement
-        return msa;
-    } else {
-        //Repeat progressive alignment along this new tree
-        var tabWeight2 = clustalWeights(tree2);
+    // if (treeIdentity === true) { // No possible improvement
+    //     return msa;
+    // } else {
+    //     //Repeat progressive alignment along this new tree
+    //     var tabWeight2 = clustalWeights(tree2);
 
-        //$log.debug(tabWeight);
-        const score2 = treeAlign(root2, tabWeight2);
+    //     //$log.debug(tabWeight);
+    //     const score2 = treeAlign(root2, tabWeight2);
 
-        //$log.debug('scores:', score1, score2);
-        //var matriceDistancesKimura2 = _utils.distancesKimura(tree2[tree2.length - 1].msa);
-        if (score2 > score1) {
-            msa = sortMSA(root2.msa, root2.numSeq);
-        }
-        return msa;
-    }
+    //     //$log.debug('scores:', score1, score2);
+    //     //var matriceDistancesKimura2 = _utils.distancesKimura(tree2[tree2.length - 1].msa);
+    //     if (score2 > score1) {
+    //         msa = sortMSA(root2.msa, root2.numSeq);
+    //     }
+    //     return msa;
+    // }
 
-}
-
-function computeMSA (root: InternalNode, seq: TSequence[]) {
-    let lMSA: string[] = [];
-    root.numSeq.forEach((seqIdx, alIdx) => {
-        lMSA.push(estringTransform(seq[seqIdx].rawSeq, root.estring[alIdx]));
-    });
-    return lMSA;
 }

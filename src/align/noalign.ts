@@ -562,11 +562,11 @@ export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentPara
             console.error('An error occured while computing the center diff. for sequence #' + i, lCenterEString, lCenterEStringRaw[i]);
             console.dir(lEStrings)
             console.dir(lCenterEStringRaw)
-            return false;
+            throw new RangeError();
         }
         lEStrings[i] = estringProduct(lDiff, lEStrings[i]);
     }
 
-    return lEStrings.map((es, idx) => { return estringTransform(pSeq[idx].rawSeq, es)});
+    return lEStrings;
 
 }

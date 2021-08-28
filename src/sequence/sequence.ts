@@ -279,7 +279,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     return distTab;
 }
 
-export function sortMSA (msa: string[], order: number[]) {
+export function sortMSA<K>(msa: K[], order: number[]): K[] {
     let lSorted = order.slice();
     order.forEach((v, k) => lSorted[v] = k)
     return lSorted.map(v => msa[v]);
