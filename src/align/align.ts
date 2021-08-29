@@ -435,7 +435,6 @@ export function MSAMSAAlignment(
         lLastInsert = 0.0,
         lPrevLastInsert = 0,
         lPrevMatch  = 0.0,
-        lPrevDelete = 0.0,
         lDeletej_1  = 0.0,
         lInserti_1  = 0.0,
         lProfAGapOP = 0.0,
@@ -449,9 +448,7 @@ export function MSAMSAAlignment(
         j = 0,
         k = 0;
 
-    const GAP_OPEN = params.gapOP;
     const GAP_START_FACTOR = opt & ALIGNOPT.DISABLE_FAVOR_START_GAP ? 1 : 2;
-    const GAP_END_FACTOR   = opt & ALIGNOPT.DISABLE_FAVOR_END_GAP ? 1 : 2;
 
     //convert to profile
     const profB = nodeB.profile;
@@ -487,7 +484,7 @@ export function MSAMSAAlignment(
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
-            lGapExtendA = lPrevDelete = lDelArr[j];
+            lGapExtendA = lDelArr[j];
             if (j === lProfBLen && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lGapOpenA -= lProfAGapOP / 2;
             }
