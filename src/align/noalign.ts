@@ -206,7 +206,7 @@ export function noalignPair(
         lDebugStats['Dupl. Minimizers'] = {a: lMinzAArr.count - lMinzA.size, b: lMinzBArr.count - lMinzB.size};
     }
 
-    const lRangesColl = [];
+    let lNbRanges = 0;
     const lDiagMap = new Map<number, TRange[]>();
 
     // TODO: break the tie
@@ -236,7 +236,7 @@ export function noalignPair(
                 begin : lMinzAArr.winPos[i],
                 end: lMinzAArr.winPos[i] + lLen
             };
-            lRangesColl.push(lRange);
+            lNbRanges ++;
 
             if (!lDiagMap.has(lDiagId)) {
                 lDiagMap.set(lDiagId, [lRange])
@@ -248,7 +248,7 @@ export function noalignPair(
     }
     if (DEBUG) {
         Log.add('Filter Minimizers');
-        lDebugStats['Nb common'] = {all: lRangesColl.length};
+        lDebugStats['Nb common'] = { all: lNbRanges };
     }
 
     let lDiagList: TRange[] = [];
