@@ -429,10 +429,10 @@ export function noalignPair(
             // special case: begin === end
             if (lMis.begin === lMis.end) {
                 lEpathA.push(-Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lEpathB.push(lMis.end - lMis.begin);
+                lEpathB.push(0); // lMis.end - lMis.end
                 continue;
             }
-
+//TODO: this looks incorrect!? lEpathB twice?
             if (lMis.begin - lMis.beginDiagId === lMis.end - lMis.endDiagId) {
                 lEpathB.push(- Math.abs(lMis.endDiagId - lMis.beginDiagId));
                 lEpathB.push(lMis.end - lMis.begin);
