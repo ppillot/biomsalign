@@ -57,7 +57,7 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
                     lR.estrings[0],
                     lR.estrings[1],
                     pParam
-                )
+                );
 
                 if (DEBUG)
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);

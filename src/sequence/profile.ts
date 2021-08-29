@@ -306,7 +306,7 @@ export function seqToProf (pSeq: TSequence, pWeight: number, params: TAlignmentP
         lProx.m_fcCounts[lResNb]= 1;
         lProx.m_wCounts[lResNb] = w;
         lProx.m_uSortOrder[lProx.m_uResidueGroup] = lResNb;
-        lProx.m_uResidueGroup = 1
+        lProx.m_uResidueGroup = 1;
         lProx.m_fOcc = w;
         lProx.m_ScoreGapOpen = lGapO / 2;
         lProx.m_ScoreGapClose = lGapO / 2;
@@ -384,7 +384,7 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
         if (lAi === -1) {
             lAisGapOpening = lAiPrev >= 0;
             lAisGapClosing = col === l - 1  // end of profile
-                || lAidx[col + 1] > 0       // next is not part of this indel
+                || lAidx[col + 1] > 0;      // next is not part of this indel
         } else {
             lAisGapOpening = false;
             lAisGapClosing = false;

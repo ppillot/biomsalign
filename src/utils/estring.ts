@@ -172,12 +172,12 @@ export function estringMerge(estringA: number[], estringB: number[]) {
                 // gap insertions at the same position. Insert the maximum
                 // number of gaps
 
-                lEstring.push(Math.min(lValA, lValB))
+                lEstring.push(Math.min(lValA, lValB));
                 lValA = estringA[++i];
                 lValB = estringB[++j];
             }
 
-            continue
+            continue;
         }
 
         // opposite sign: insert gaps
