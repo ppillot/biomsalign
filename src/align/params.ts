@@ -13,7 +13,7 @@ export enum SEQUENCE_TYPE {
     UNSET
 }
 
-export const DEBUG = true;
+export const DEBUG = false;
 export const DEFAULT_GAP_CHAR = '-';
 
 const BLOSUM62 = {
