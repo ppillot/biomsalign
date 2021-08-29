@@ -13,13 +13,12 @@
  */
 
 import { DEBUG, TAlignmentParam } from "./params";
-import { TSequence, distanceMatrix, sortMSA, distanceKimura } from "../sequence/sequence";
+import { TSequence, distanceMatrix, sortMSA } from "../sequence/sequence";
 import { InternalNode, isLeafNode, makeTree, clustalWeights,
-    compareTrees,
     setProfiles} from "../sequence/tree";
 import Log from '../utils/logger';
 import { pairwiseAlignment, MSASeqAlignment, MSAMSAAlignment } from "./align";
-import { estringProduct, estringTransform } from "../utils/estring";
+import { estringProduct } from "../utils/estring";
 import { mergeProfiles } from "../sequence/profile";
 
 
