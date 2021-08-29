@@ -308,8 +308,8 @@ export function seqToProf (pSeq: TSequence, pWeight: number, params: TAlignmentP
         lProx.m_uSortOrder[lProx.m_uResidueGroup] = lResNb;
         lProx.m_uResidueGroup = 1;
         lProx.m_fOcc = w;
-        lProx.m_ScoreGapOpen = lGapO / 2;
-        lProx.m_ScoreGapClose = lGapO / 2;
+        lProx.m_ScoreGapOpen  = lGapO / 2 * w;
+        lProx.m_ScoreGapClose = lGapO / 2 * w;
 
             // Cache substitution scores at this position
 
@@ -446,8 +446,8 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lProx.m_uResidueGroup = lProxA.m_uResidueGroup;
         }
 
-        lProx.m_ScoreGapOpen = lGapO / 2 * (1 - lProx.m_fcStartOcc);
-        lProx.m_ScoreGapClose = lGapO / 2 * (1 - lProx.m_fcEndOcc);
+        lProx.m_ScoreGapOpen  = lGapO / 2 * (1 - lProx.m_fcStartOcc) * w;
+        lProx.m_ScoreGapClose = lGapO / 2 * (1 - lProx.m_fcEndOcc)   * w;
 
     }
 
