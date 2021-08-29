@@ -12,11 +12,20 @@ test('aligns ends', () => {
     expect(lRB).toBe('CCCAATTCTA---------');
 });
 
-test('aligns start', () => {
+test('add gaps in sequence', () => {
     const lSeqA = makeSequence(  'AGCCCTTA');
     const lSeqB = makeSequence('ACTGCCCTCA');
     const lParam = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
     const lResult = pairwiseAlignment(lSeqA, lSeqB, lParam);
     const lRA = estringTransform(lSeqA.rawSeq, lResult.estrings[0], { gapchar: '-' });
-    expect(lRA).toBe('--AGCCCTTA');
+    expect(lRA).toBe('A--GCCCTTA');
+});
+
+test('aligns starts', () => {
+    const lSeqA = makeSequence('ACTGGGGAGGTGTA');
+    const lSeqB = makeSequence('GAGGTGTA');
+    const lParam = getAlignmentParameters(SEQUENCE_TYPE.NUCLEIC);
+    const lResult = pairwiseAlignment(lSeqA, lSeqB, lParam);
+    const lRA = estringTransform(lSeqB.rawSeq, lResult.estrings[1], { gapchar: '-' });
+    expect(lRA).toBe('------GAGGTGTA');
 });

@@ -25,6 +25,8 @@ its `align()` method can be called to align sequences.
 biomsa.align(["ACTGGGGAGGTGTA", "ACTGAGGTGTA"]).then((result) => {
   console.log(result);
 });
+
+// Array [ "ACTGGGGAGGTGTA", "ACT---GAGGTGTA" ]
 ```
 
 Note: `align()` returns a promise.
