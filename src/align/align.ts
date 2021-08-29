@@ -321,7 +321,6 @@ export function MSASeqAlignment(
         lPrevMatch = GAP_START_CORRECTION_B;
         lLastInsert = -Infinity;
         lDelArr[0] = profA.m_ScoreGapOpen[0];
-        lPrevLastInsert = GAP_END_CORRECTION_B;
 
         for (let j = 1; j <= lSeqBLen; j++) {
             tb = TRACE_BACK.MATCH;
