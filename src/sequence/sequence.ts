@@ -382,7 +382,7 @@ export function distanceKimura (msa: string[]) {
             // the following distance estimate" Edgar. BMC Bioinformatics 2004
 
             dPctId = fractionalIdentity(msa[i], msa[j]);
-            p = 0, 1 - dPctId;
+            p = 1 - dPctId;
 
             // Kimura formula used for differences < 75%
             if (p < 0.75) {
