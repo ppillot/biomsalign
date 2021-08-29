@@ -598,7 +598,7 @@ function tracebBackToEpaths (tbM: Uint8Array, lenA: number, lenB: number, tb0: n
     let j = lenB;
     let lIdx = lenA * lenB + lenB;
     let tbIdx = lIdx;
-    let isOdd = lIdx % 2;
+    let isOdd = 1;  // will be overwritten
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
 
