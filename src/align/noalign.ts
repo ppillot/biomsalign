@@ -56,7 +56,8 @@ import { DEBUG, TAlignmentParam } from "./params";
 import Log from "../utils/logger";
 import { hammingWeight } from "../utils/bitarray";
 import { ALIGNOPT, pairwiseAlignment } from "./align";
-import { epath2estring, EPATH_2_STRING, estringCat, estringCountPositive, estringDifference, estringLength, estringMerge, estringProduct, estringTransform } from "../utils/estring";
+import { epath2estring, EPATH_2_STRING, estringCat, estringCountPositive,
+    estringDifference, estringLength, estringMerge, estringProduct } from "../utils/estring";
 
 type TRange = {
     diagId: number,
