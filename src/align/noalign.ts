@@ -187,9 +187,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 }
 
 type TMinzComp = [Map<number, number[]>, TMinzStore, Uint16Array];
-function isMinzComp(o: TSequence|TMinzComp): o is TMinzComp {
-    return Array.isArray(o) && o.length === 3;
-}
+
 export function noalignPair(
     seqA: TSequence,
     seqB: TSequence,
