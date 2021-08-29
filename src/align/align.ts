@@ -116,7 +116,7 @@ export function pairwiseAlignment (
     lMatchArr[0] = 0;
     lDelArr[0] = -Infinity;
     for (let j = 1; j <= lSeqBLen; j++) {
-        lMatchArr[j] = GAP_START_CORRECTION; // No gap extension penalty
+        lMatchArr[j] = GAP_OPEN + GAP_START_CORRECTION; // No gap extension penalty
         lDelArr[j] = -Infinity;
     }
 
