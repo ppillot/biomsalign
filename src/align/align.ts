@@ -208,7 +208,7 @@ export function pairwiseAlignment (
             isOdd =  tbIdx % 2;
             tbIdx = tbIdx >>> 1;
             if (isOdd) {
-                tbM[tbIdx] += tb
+                tbM[tbIdx] += tb;
             } else {
                 tbM[tbIdx] += tb << 4;
             }
@@ -387,7 +387,7 @@ export function MSASeqAlignment(
             isOdd =  tbIdx % 2;
             tbIdx = tbIdx >>> 1;
             if (isOdd) {
-                tbM[tbIdx] += tb
+                tbM[tbIdx] += tb;
             } else {
                 tbM[tbIdx] += tb << 4;
             }
@@ -516,7 +516,7 @@ export function MSAMSAAlignment(
             kmax = profB.m_uResidueGroup[j - 1];
             k = 0;
             lOffset = (j - 1) * params.abSize;
-            lResList = profB.m_uSortOrder.subarray(lOffset, lOffset + kmax )
+            lResList = profB.m_uSortOrder.subarray(lOffset, lOffset + kmax );
             while (k < kmax) {
                 lResProfNb = lResList[k];
                 lMatch += profB.m_wCounts[lOffset + lResProfNb] * lProfAAAScores[lResProfNb];
@@ -560,7 +560,7 @@ export function MSAMSAAlignment(
             isOdd =  tbIdx % 2;
             tbIdx = tbIdx >>> 1;
             if (isOdd) {
-                tbM[tbIdx] += tb
+                tbM[tbIdx] += tb;
             } else {
                 tbM[tbIdx] += tb << 4;
             }
@@ -646,7 +646,7 @@ function tracebBackToEpaths (tbM: Uint8Array, lenA: number, lenB: number, tb0: n
         lEpathA.push(i);
         lEpathB.push(-i);
     } else if (j > 0) {
-        lEpathA.push(-j)
+        lEpathA.push(-j);
         lEpathB.push(j);
     }
 

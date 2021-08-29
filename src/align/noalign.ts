@@ -240,7 +240,7 @@ export function noalignPair(
             lNbRanges ++;
 
             if (!lDiagMap.has(lDiagId)) {
-                lDiagMap.set(lDiagId, [lRange])
+                lDiagMap.set(lDiagId, [lRange]);
             } else {
                 let lDiagList = lDiagMap.get(lDiagId);
                 lDiagList!.push(lRange);
@@ -310,7 +310,7 @@ export function noalignPair(
             // Compare kmers in forward direction until score drops
             let m = lPrevSegment.end;   // end position on seq A
             let n = m - lCurrentSegment.diagId;
-            let lWinScore = 0
+            let lWinScore = 0;
 
             while (m < lCurrentSegment.begin
                 && lWinScore < 2
@@ -405,7 +405,7 @@ export function noalignPair(
         let lCoverage = 0;
         lExtDiagList.forEach(d => {
             lCoverage += d.end - d.begin;
-        })
+        });
         lCoverage /= seqA.encodedSeq.length;
         lDebugStats['Coverage'] = {all: lCoverage};
         lDebugStats['Extended Diagonals'] = {all: lExtDiagList.length};
