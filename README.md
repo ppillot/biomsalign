@@ -15,7 +15,7 @@ BioMSA is available as a single minified javascript file. Insert the following
 snippet in your HTML page to start using it.
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/biomsa@0.1.1/dist/biomsa.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/biomsa/dist/biomsa.js"></script>
 ```
 
 Once loaded, the global `biomsa` object is available and
