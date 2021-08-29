@@ -28,7 +28,6 @@ export class DEQueue<T>  {
     constructor (size: number) {
         this.storeSize = size
         this.store = new Array(size)
-        const lHalf = size >> 2;
         this.head = 0;
         this.tail = 0;
     }
