@@ -230,21 +230,23 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
                         0.4     |-------------- D
                                         0.8
 
-    Edge	Length	Leaves	Strength
-    ----	-----	------	--------
-    xy		0.3		3		0.1
-    xA		0.2		1		0.2
-    yz		0.4		2		0.2
-    yB		0.1		1		0.1
-    zC		0.7		1		0.7
-    zD		0.8		1		0.8
+    | Edge	|Length |Leaves |Strength|
+    | -----	|------ |-------|--------|
+    | xy	|0.3	|	3	|	0.1  |
+    | xA	|0.2	|	1	|	0.2  |
+    | yz	|0.4	|	2	|	0.2  |
+    | yB	|0.1	|	1	|	0.1  |
+    | zC	|0.7	|	1	|	0.7  |
+    | zD	|0.8	|	1	|	0.8  |
 
-    Leaf	Path		Strengths			Weight
-    ----	----		---------			------
-    A		xA			0.2					0.2
-    B		xy-yB		0.1 + 0.1			0.2
-    C		xy-yz-zC	0.1 + 0.2 + 0.7		1.0
-    D		xy-yz-zD	0.1 + 0.2 + 0.8		1.1
+
+    | Leaf |   Path   | Strengths		| Weight |
+    |------|----------| ----------------|--------|
+    |   A  | xA		  | 0.2				|  0.2   |
+    |   B  | xy-yB	  | 0.1 + 0.1		|  0.2   |
+    |   C  | xy-yz-zC | 0.1 + 0.2 + 0.7 |  1.0   |
+    |   D  | xy-yz-zD | 0.1 + 0.2 + 0.8 |  1.1   |
+
     * @param   {object} cluster cluster tree computed
     * @returns {array} array containing weights for each node in the cluster tree
     */
