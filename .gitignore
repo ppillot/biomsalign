@@ -2,3 +2,4 @@ node_modules
 /lib
 /references/*.pdf
 /build
+/release
