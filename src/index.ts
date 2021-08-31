@@ -261,6 +261,11 @@ class BioMSAClass {
             return resolve(lAlignment);
 
 
+        })
+        .catch(err => {
+            // Finalize logs collected until this point
+            if (DEBUG) Log.summary();
+            return Promise.reject(err);
         });
 
         return msa;
