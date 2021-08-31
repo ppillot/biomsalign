@@ -256,6 +256,8 @@ export function noalignPair(
     // Merge consecutive or overlapping subarrays on the same diagonals
     // Note: the extensions are made on range references
     lDiagMap.forEach((diags) => {
+        if (!diags.length) return;  // safeguard
+
         let lCurrentSegment = diags[0];
         lDiagList.push(lCurrentSegment);
         diags.forEach(range => {
@@ -272,6 +274,9 @@ export function noalignPair(
         lDebugStats['Nb diagonals'] = {all: lDiagList.length};
     }
 
+    // Special case: no diagonal found: fallback to NW alignment
+    if (lDiagList.length === 0) return pairwiseAlignment(seqA, seqB, pAlignParam).estrings;
+
     // Sort ranges in diag list from left to right and from top to bottom
     lDiagList.sort((a, b) => {
         let lDelta = a.begin - b.begin;
@@ -286,7 +291,7 @@ export function noalignPair(
     // This is measured by bitwise operations between 16bits numbers.
 
     let lPrevSegment = lDiagList[0];
-    let lExtDiagList = [lPrevSegment];
+    let lExtDiagList = lPrevSegment ? [lPrevSegment] : [];
     let lMissingSegments: any[] = [];
 
     for (let i = 1; i < lDiagList.length; i++) {
