@@ -60,39 +60,25 @@ biomsa.align(
     }).then(result => console.log(result))
 ```
 
-### gapopen
+- `gapopen` Gap open penalty (a negative number). If not provided, it is set based on the sequence type.
 
-Gap open penalty (a negative number). If not provided, it is set based on the sequence type.
+- `gapextend` Gap extend penalty (a negative number). If not provided, it is set based on the sequence type.
 
-### gapextend
+- `matrix` Substitution score matrix as an array of number array. Cells are sorted by amino acid 1 letter code rank (A, C, D, E,...). If not provided, it is set based on the sequence type.
 
-Gap extend penalty (a negative number). If not provided, it is set based on the sequence type.
+- `method` (default `"auto"`) Alignment method. By default, the method is set based on the sequences length.
+  For sizes greater than 1600 residues, the diagonal based heuristics is used. For shorter sequences a complete Needleman-Wunsch alignment is performed.
 
-### matrix
+  - `"auto"` default value
+  - `"complete"` computes an optimal alignment using Needleman-Wunsch algorithm. This can be slow and take a lot of memory for long sequences.
+  - `"diag"` computes an alignment by first finding common segments between sequences (called diagonals) and then
+    computing the missing segments using NW algorithm.
 
-Substitution score matrix as an array of number array. Cells are sorted by amino acid 1 letter code rank (A, C, D, E,...). If not provided, it is set based on the sequence type.
+- `type` (default `"auto"`) Sequence type. Can be `"amino"`, `"nucleic"` or `"auto"` when auto-detected. BioMSA encodes non-canonical residues randomly. For example 'B' in a protein sequence which could be "Asn" or "Asp" will be encoded randomly as one of these amino-acids.
 
-### method
+- `gapchar` (default `"-"`) Character to use in the aligned sequences to represent a gap.
 
-Alignment method. By default, the method is set based on the sequences length.
-For sizes greater than 1600 residues, the diagonal based heuristics is used. For shorter sequences a complete Needleman-Wunsch alignment is performed.
-
-- `auto` default value
-- `complete` computes an optimal alignment using Needleman-Wunsch algorithm. This can be slow and take a lot of memory for long sequences.
-- `diag` computes an alignment by first finding common segments between sequences (called diagonals) and then
-  computing the missing segments using NW algorithm.
-
-### type
-
-Sequence type. Can be `amino`, `nucleic` or `auto` when auto-detected. BioMSA encodes non-canonical residues randomly. For example 'B' in a protein sequence which could be "Asn" or "Asp" will be encoded randomly as one of these amino-acids.
-
-### gapchar
-
-Character to use in the aligned sequences to represent a gap. By default `-` (hyphen) is used.
-
-### debug
-
-Boolean. Set to true to report some debugging information to the javascript console.
+- `debug` (default `false`) Boolean. Set to true to report some debugging information to the javascript console.
 
 ## Features
 
