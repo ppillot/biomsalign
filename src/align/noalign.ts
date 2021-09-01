@@ -209,17 +209,21 @@ export function noalignPair(
         lDebugStats['Dupl. Minimizers'] = {a: lMinzAStore.count - lMinzA.size, b: lMinzBStore.count - lMinzB.size};
     }
 
-    let lNbRanges = 0;
+    let lNbCommonWindows = 0;
     const lDiagMap = new Map<number, TRange[]>();
 
-    // TODO: break the tie
+    // Loop through all kmers fron sequence A to find which ones are matching
+    // in sequence B. Doing so, favour the kmers that minimize a common window.
+    // Those are better seed candidates for diagonals. They also cover a longer
+    // range and thus avoid extra computations.
+
     for (let i = 0; i < lMinzAStore.count; i++) {
         let kmer = lMinzAStore.kmer[i];
 
         if (!lMinzB.has(kmer)) continue;
         let listB = lMinzB.get(kmer) as number[];
 
-            // Compare minimized string in A with those in listB to retain only
+            // Compare minimized string in A with those in listB to take advantage of
             // the ones that share common minimized strings
 
         let lMinzSubA = seqA.rawSeq.substring(lMinzAStore.winPos[i], lMinzAStore.winPosEnd[i]);
@@ -228,18 +232,32 @@ export function noalignPair(
             let lBidx = listB[j];
             let lMinzSubB =  seqB.rawSeq.substring(lMinzBStore.winPos[lBidx], lMinzBStore.winPosEnd[lBidx]);
             let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
+
+            let lHasCommonWindow = false;
             if (lLen == lMinzSubA.length) {
-                if (lMinzSubB.indexOf(lMinzSubA) !== 0) continue;
-            } else if (lMinzSubA.indexOf(lMinzSubB) !== 0) continue;
+                   lHasCommonWindow = (lMinzSubB.indexOf(lMinzSubA) === 0);
+            } else lHasCommonWindow = (lMinzSubA.indexOf(lMinzSubB) === 0);
 
             // common range to store
-            let lDiagId = lMinzAStore.winPos[i] - lMinzBStore.winPos[lBidx];
-            let lRange = {
-                diagId: lDiagId,
-                begin : lMinzAStore.winPos[i],
-                end: lMinzAStore.winPos[i] + lLen
-            };
-            lNbRanges ++;
+            let lDiagId = 0;
+            let lRange: TRange;
+            if (lHasCommonWindow) {
+                lDiagId = lMinzAStore.winPos[i] - lMinzBStore.winPos[lBidx];
+                lRange = {
+                    diagId: lDiagId,
+                    begin : lMinzAStore.winPos[i],
+                    end   : lMinzAStore.winPos[i] + lLen
+                };
+                lNbCommonWindows ++;
+            } else {
+                lDiagId = lMinzAStore.kmerPos[i] - lMinzBStore.kmerPos[lBidx];
+                lRange = {
+                    diagId: lDiagId,
+                    begin : lMinzAStore.kmerPos[i],
+                    end   : lMinzAStore.kmerPos[i] + KSIZE - 1
+                };
+            }
+
 
             if (!lDiagMap.has(lDiagId)) {
                 lDiagMap.set(lDiagId, [lRange]);
@@ -251,7 +269,7 @@ export function noalignPair(
     }
     if (DEBUG) {
         Log.add('Filter Minimizers');
-        lDebugStats['Nb common'] = { all: lNbRanges };
+        lDebugStats['Nb common windows'] = { all: lNbCommonWindows };
     }
 
     let lDiagList: TRange[] = [];
@@ -291,6 +309,21 @@ export function noalignPair(
     if (DEBUG) Log.add('Sort Minimizers');
 
     // TODO.Find optimal order of diagonals using LIS like algorithm
+    let lDiagIncreasingSequences: TRange[][] = [[lDiagList[0]]];
+    let lIncrSeqSizes: number[] = [lDiagList[0].end - lDiagList[0].begin];
+    for (let i = 0; i < lDiagList.length; i++) {
+        let lDiag = lDiagList[i];
+        let lDiagLen = lDiag.end - lDiag.begin;
+
+        // Loop over the list of increasing sequences and see to which one this
+        // diagonal could be appended to.
+        for (let j = 0; j < lDiagIncreasingSequences.length; j++) {
+
+                // Can lDiag be the start of a new list of ordered diagonals?
+
+
+        }
+    }
 
     // Extend consecutive segments on same diagonal. We apply a tolerance for
     // extension at 25% difference between Kmers.
