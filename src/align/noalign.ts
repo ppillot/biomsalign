@@ -277,7 +277,11 @@ export function noalignPair(
     }
 
     // Special case: no diagonal found: fallback to NW alignment
-    if (lDiagList.length === 0) return pairwiseAlignment(seqA, seqB, pAlignParam).estrings;
+    if (lDiagList.length === 0) {
+        if (DEBUG) console.table(lDebugStats);
+
+        return pairwiseAlignment(seqA, seqB, pAlignParam).estrings;
+    }
 
     // Sort ranges in diag list from left to right and from top to bottom
     lDiagList.sort((a, b) => {
