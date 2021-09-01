@@ -187,7 +187,9 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
     return [lMinzMap, lStoreMinz, lKarr];
 }
 
-type TMinzComp = [Map<number, number[]>, TMinzStore, Uint16Array];
+/** Map Kmer value to a table of all its indices in the sequence */
+type TMinzMap = Map<number, number[]>;
+type TMinzComp = [TMinzMap, TMinzStore, Uint16Array];
 
 export function noalignPair(
     seqA: TSequence,
@@ -199,20 +201,20 @@ export function noalignPair(
 
     let lDebugStats: {[k: string]: Partial<{a: any, b: any, all: any}>} = {};
 
-    const [lMinzA, lMinzAArr, lKmerA] = pMinzA ?? extractMinimizers(seqA, KSIZE, WSIZE);
-    const [lMinzB, lMinzBArr, lKmerB] = pMinzB ?? extractMinimizers(seqB, KSIZE, WSIZE);
+    const [lMinzA, lMinzAStore, lKmerAArr] = pMinzA ?? extractMinimizers(seqA, KSIZE, WSIZE);
+    const [lMinzB, lMinzBStore, lKmerBArr] = pMinzB ?? extractMinimizers(seqB, KSIZE, WSIZE);
     if (DEBUG) {
         Log.add('Extract Minimizers');
-        lDebugStats['Nb Minimizers'] = {a: lMinzAArr.count, b: lMinzBArr.count};
-        lDebugStats['Dupl. Minimizers'] = {a: lMinzAArr.count - lMinzA.size, b: lMinzBArr.count - lMinzB.size};
+        lDebugStats['Nb Minimizers'] = {a: lMinzAStore.count, b: lMinzBStore.count};
+        lDebugStats['Dupl. Minimizers'] = {a: lMinzAStore.count - lMinzA.size, b: lMinzBStore.count - lMinzB.size};
     }
 
     let lNbRanges = 0;
     const lDiagMap = new Map<number, TRange[]>();
 
     // TODO: break the tie
-    for (let i = 0; i < lMinzAArr.count; i++) {
-        let kmer = lMinzAArr.kmer[i];
+    for (let i = 0; i < lMinzAStore.count; i++) {
+        let kmer = lMinzAStore.kmer[i];
 
         if (!lMinzB.has(kmer)) continue;
         let listB = lMinzB.get(kmer) as number[];
@@ -220,22 +222,22 @@ export function noalignPair(
             // Compare minimized string in A with those in listB to retain only
             // the ones that share common minimized strings
 
-        let lMinzSubA = seqA.rawSeq.substring(lMinzAArr.winPos[i], lMinzAArr.winPosEnd[i]);
+        let lMinzSubA = seqA.rawSeq.substring(lMinzAStore.winPos[i], lMinzAStore.winPosEnd[i]);
 
         for (let j = 0; j < listB.length; j++) {
             let lBidx = listB[j];
-            let lMinzSubB =  seqB.rawSeq.substring(lMinzBArr.winPos[lBidx], lMinzBArr.winPosEnd[lBidx]);
+            let lMinzSubB =  seqB.rawSeq.substring(lMinzBStore.winPos[lBidx], lMinzBStore.winPosEnd[lBidx]);
             let lLen = Math.min(lMinzSubA.length, lMinzSubB.length);
             if (lLen == lMinzSubA.length) {
                 if (lMinzSubB.indexOf(lMinzSubA) !== 0) continue;
             } else if (lMinzSubA.indexOf(lMinzSubB) !== 0) continue;
 
             // common range to store
-            let lDiagId = lMinzAArr.winPos[i] - lMinzBArr.winPos[lBidx];
+            let lDiagId = lMinzAStore.winPos[i] - lMinzBStore.winPos[lBidx];
             let lRange = {
                 diagId: lDiagId,
-                begin : lMinzAArr.winPos[i],
-                end: lMinzAArr.winPos[i] + lLen
+                begin : lMinzAStore.winPos[i],
+                end: lMinzAStore.winPos[i] + lLen
             };
             lNbRanges ++;
 
@@ -322,7 +324,7 @@ export function noalignPair(
             ) {
                 m += KSIZE;
                 n += KSIZE;
-                lWinScore = dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
+                lWinScore = dnaHammingDistance(lKmerAArr[m], lKmerBArr[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
             }
 
             // To avoid boundaries conditions, remove the tip of the extension
@@ -342,7 +344,7 @@ export function noalignPair(
             ) {
                 m -= KSIZE;
                 n -= KSIZE;
-                lWinScore = dnaHammingDistance(lKmerA[m], lKmerB[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
+                lWinScore = dnaHammingDistance(lKmerAArr[m], lKmerBArr[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
             }
 
             if (m < lCurrentSegment.begin - 2 * KSIZE) {
