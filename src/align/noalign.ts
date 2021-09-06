@@ -359,7 +359,7 @@ export function noalignPair(
     //
     // Otherwise, we search for the list of diagonals with maximum size that can
     // accept the new diagonal and we duplicate it + append the new diagonal to
-    // it. Tee new suite is placed in the list of suit so that the order of
+    // it. The new suite is placed in the list of suit so that the order of
     // increasing sizes is maintained.
     // When this addition is made, the list of suites is cleaned to remove any
     // list that is shorter and that also extends past this new extent (in other
@@ -402,12 +402,12 @@ export function noalignPair(
         for (let j = lDiagIncrSuites.length - 1; j >= 0; j--) {
             const lList = lDiagIncrSuites[j];
             let lMaxDiag = lList[lList.length - 1];
-            if (lDiag.begin + lDiag.diagId >= lMaxDiag.end + lMaxDiag.diagId
+            if (lDiag.begin >= lMaxDiag.end
                 && lMaxDiag.end - lMaxDiag.diagId < lDiagTopRow      // New must be SW of latest
             ) {
 
-                    // This small gap penalty favours diagonals that extend
-                    // a list with the lowest jump. It should only have an effect
+                    // This small gap penalty favours diagonals that extend a
+                    // list with the lowest jump. It should only have an effect
                     // when there is a tie between short diagonals
 
                 const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
@@ -533,7 +533,7 @@ export function noalignPair(
         } else {
             // Compare nucleotides in forward direction until score drops
             let m = lPrevSegment.end;   // end position on seq A
-            let n = m - lCurrentSegment.diagId;
+            let n = m - lPrevSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
                 && m < lCurrentSegment.begin) {
@@ -547,8 +547,8 @@ export function noalignPair(
 
             // Compare in backward direction until sequences differ
 
-            n = lCurrentSegment.begin;
-            m = n - lPrevSegment.diagId;
+            m = lCurrentSegment.begin;
+            n = m - lCurrentSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
                 && m > lPrevSegment.end) {
@@ -595,16 +595,18 @@ export function noalignPair(
         let lMis = lMissingSegments[i];
         if (lMis) {
             // Special case next diag begins at same col prev diag finishes
-            if (lMis.begin + lMis.beginDiagId === lMis.end + lMis.endDiagId) {
-                lEpathA.push(-Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lEpathB.push(lMis.end - lMis.begin);
+            if (lMis.begin === lMis.end) {
+                const lDelta = Math.abs(lMis.endDiagId - lMis.beginDiagId);
+                lEpathA.push(-lDelta);
+                lEpathB.push(lDelta);
                 continue;
             }
 
             // Special case next diag begins at same row prev diag finishes
             if (lMis.begin - lMis.beginDiagId === lMis.end - lMis.endDiagId) {
-                lEpathB.push(- Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lEpathA.push(lMis.end - lMis.begin);
+                const lDelta = lMis.end - lMis.begin;
+                lEpathB.push(-lDelta);
+                lEpathA.push(lDelta);
                 continue;
             }
 
