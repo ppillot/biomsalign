@@ -303,26 +303,121 @@ export function noalignPair(
 
     // Sort ranges in diag list from left to right and from top to bottom
     lDiagList.sort((a, b) => {
-        let lDelta = a.begin - b.begin;
+        let lDelta = a.begin + a.diagId - b.begin - b.diagId;
         return (lDelta === 0) ? a.diagId - b.diagId: lDelta;
     });
     if (DEBUG) Log.add('Sort Minimizers');
 
-    // TODO.Find optimal order of diagonals using LIS like algorithm
-    let lDiagIncreasingSequences: TRange[][] = [[lDiagList[0]]];
-    let lIncrSeqSizes: number[] = [lDiagList[0].end - lDiagList[0].begin];
-    for (let i = 0; i < lDiagList.length; i++) {
+    // Find optimal order of diagonals using Longest Increasing Sequence
+    // like algorithm. Here, the WOrd Sequence is replaced by Suite so as to
+    // avoid confusion with biological sequences.
+    // In the context of diagonals, a new diagonal can be appended to a list
+    // iff it is in the SW quadrant from the bottom tip of the last diagonal
+    // in the list.
+    // ____________________________________________________________________
+    // |              \
+    // |  \            \ B
+    // |   \ A          \
+    // |    \                 \
+    // |                       \ C
+    // |                        \
+    //
+    // C can extend B but it can't extand A
+    //
+    // A new diagonal can start a new list if:
+    // - its diag id is > to the one of the current shorter list in the suites
+    //   (the rationale is that any diagonal that would extend a diagonal below
+    //   the smallest one would also be an extension of the smallest one)
+    // - and its row (defined by begin - diag id) is lower.
+    //   (the rationale is that this new diagonal will be able to catch next
+    //  diagonals that can't be caught by the current minimum)
+    //
+    // Otherwise, we search for the list of diagonals with maximum size that can
+    // accept the new diagonal and we duplicate it + append the new diagonal to
+    // it. Tee new suite is placed in the list of suit so that the order of
+    // increasing sizes is maintained.
+    // When this addition is made, the list of suites is cleaned to remove any
+    // list that is shorter and that also extends past this new extent (in other
+    // words a diagonal that extends past, is a diagonal which bottom tip is
+    // below the lowest point of the new diagonal).
+
+    /** Collections of list of increasing diagonals */
+    let lDiagIncrSuites: TRange[][] = [[lDiagList[0]]];
+    /** Length of each list of increasing diagonals as the sum of diags length */
+    let lIncrSuitesSizes: number[] = [lDiagList[0].end - lDiagList[0].begin];
+
+    for (let i = 1; i < lDiagList.length; i++) {
         let lDiag = lDiagList[i];
         let lDiagLen = lDiag.end - lDiag.begin;
+        let lDiagBottomRow = lDiag.end - lDiag.diagId;
+        let lDiagTopRow = lDiag.begin - lDiag.diagId;
+
+            // Can lDiag be the start of a new list of ordered diagonals?
+
+        let lMinDiag = lDiagIncrSuites[0][0];
+        if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
+            && lDiagBottomRow < lMinDiag.end - lMinDiag.diagId    // diagonal tip row must be above current minimum
+        ) {
+
+            if (lDiagLen < lIncrSuitesSizes[0]) {
+                lDiagIncrSuites.unshift([lDiag]);
+                lIncrSuitesSizes.unshift(lDiagLen);
+                continue;
+            }
+
+            lDiagIncrSuites[0] = [lDiag];
+            lIncrSuitesSizes[0] = lDiagLen;
+            continue;
+        }
+
 
         // Loop over the list of increasing sequences and see to which one this
         // diagonal could be appended to.
-        for (let j = 0; j < lDiagIncreasingSequences.length; j++) {
 
-                // Can lDiag be the start of a new list of ordered diagonals?
+        for (let j = lDiagIncrSuites.length - 1; j >= 0; j--) {
+            const lList = lDiagIncrSuites[j];
+            let lMaxDiag = lList[lList.length - 1];
+            if (lDiag.begin + lDiag.diagId >= lMaxDiag.end + lMaxDiag.diagId
+                && lMaxDiag.end - lMaxDiag.diagId < lDiagTopRow      // New must be SW of latest
+            ) {
+                // assume that they are sorted by size
+                const lNewSize = lIncrSuitesSizes[j] + lDiagLen;
+                // TODO: binary search to find where it should be inserted now
+                let k = j;
+                while (k < lDiagIncrSuites.length && lIncrSuitesSizes[k] < lNewSize) {
+                    k ++;
+                }
+                lIncrSuitesSizes.splice(k, 0, lNewSize);
+                let lNewSeq = lList.slice();
+                lNewSeq.push(lDiag);
 
+                lDiagIncrSuites.splice(k, 0, lNewSeq);
 
+                    // clean diag lists by removing all lists that are both
+                    // shorter and which tip is below this diagonal tip
+
+                while (k --) {
+                    let lTip = lDiagIncrSuites[k][lDiagIncrSuites.length - 1];
+                    if (!lTip) {
+                        continue;
+                    }
+                    if (lTip.end - lTip.diagId > lDiagBottomRow
+                        && lIncrSuitesSizes[k] < lNewSize
+                    ) {
+                        lDiagIncrSuites.splice(k, 1);
+                        lIncrSuitesSizes.splice(k, 1);
+                    }
+                }
+
+                break;
+            }
         }
+    }
+
+    lDiagList = lDiagIncrSuites.pop() as TRange[];
+    if (DEBUG) {
+        Log.add('Filter Minimizers');
+        lDebugStats['Nb filtered diagonals'] = {all: lDiagList.length};
     }
 
     // Extend consecutive segments on same diagonal. We apply a tolerance for
@@ -335,12 +430,6 @@ export function noalignPair(
 
     for (let i = 1; i < lDiagList.length; i++) {
         let lCurrentSegment = lDiagList[i];
-
-        // Temporary fix here: due to crude sorting of diagonals, overlaps are
-        // not taken into account. The following prevents intractable situations
-        // but it does not guarantee the best outcome.
-
-        if (lCurrentSegment.begin < lPrevSegment.end) continue;
 
         // TODO: when difference between end and begin is >> KSIZE (e.g. 400),
         // there are likely unmapped gaps. It might be useful to speed up
