@@ -415,8 +415,16 @@ export function noalignPair(
     }
 
     lDiagList = lDiagIncrSuites.pop() as TRange[];
+
     if (DEBUG) {
         Log.add('Filter Minimizers');
+        let lCoverage = 0;
+        lDiagList.forEach(d => {
+            lCoverage += d.end - d.begin;
+        });
+        lCoverage /= seqA.encodedSeq.length;
+        lDebugStats['Strict Coverage'] = {all: lCoverage};
+
         lDebugStats['Nb filtered diagonals'] = {all: lDiagList.length};
     }
 
