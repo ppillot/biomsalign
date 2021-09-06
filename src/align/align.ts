@@ -52,8 +52,10 @@ export function pairwiseAlignment (
     opt = 0
 ) {
 
-    const lSeqALen = seqA.rawSeq.length;
-    const lSeqBLen = seqB.rawSeq.length;
+    const sA = seqA.encodedSeq;
+    const sB = seqB.encodedSeq;
+    const lSeqALen = sA.length;
+    const lSeqBLen = sB.length;
     let lMatch = 0,      // match score
 
             // Textbook approach considers 3 n x m matrices for holding
@@ -79,8 +81,7 @@ export function pairwiseAlignment (
     // results for 2 successive values in the DP matrix.
 
     const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)); // Trace back matrix
-    const sA = seqA.encodedSeq;
-    const sB = seqB.encodedSeq;
+
 
     let gapOpenA = 0,
         gapOpenB = 0,
