@@ -36,6 +36,7 @@ function summary () {
         lSummary[key] = val - lPrevTime;
         lPrevTime = val;
     });
+    lSummary['TOTAL'] = gEvents.get('END')! - gEvents.get('START')!;
 
     console.table(lSummary);
 }
