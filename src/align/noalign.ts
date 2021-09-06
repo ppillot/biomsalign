@@ -368,30 +368,38 @@ export function noalignPair(
 
     /** Collections of list of increasing diagonals */
     let lDiagIncrSuites: number[][] = [[0]];
+    let lDiag = lDiagList[0];
+    let lDiagLen = lDiag.end - lDiag.begin;
+    let lDiagBottomRow = lDiag.end - lDiag.diagId;
+    let lDiagTopRow = lDiag.begin - lDiag.diagId;
     /** Length of each list of increasing diagonals as the sum of diags length */
-    let lIncrSuitesSizes: number[] = [lDiagList[0].end - lDiagList[0].begin];
+    let lIncrSuitesSizes: number[] = [lDiagLen];
+    let lIncrSuitesBottomRow: number[] = [lDiagBottomRow];
 
     for (let i = 1; i < lDiagList.length; i++) {
-        let lDiag = lDiagList[i];
-        let lDiagLen = lDiag.end - lDiag.begin;
-        let lDiagBottomRow = lDiag.end - lDiag.diagId;
-        let lDiagTopRow = lDiag.begin - lDiag.diagId;
+        lDiag = lDiagList[i];
+        lDiagLen = lDiag.end - lDiag.begin;
+        lDiagBottomRow = lDiag.end - lDiag.diagId;
+        lDiagTopRow = lDiag.begin - lDiag.diagId;
 
             // Can lDiag be the start of a new list of ordered diagonals?
 
         let lMinDiag = lDiagList[lDiagIncrSuites[0][0]];
+
         if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
-            && lDiagBottomRow < lMinDiag.end - lMinDiag.diagId    // diagonal tip row must be above current minimum
+            && lDiagBottomRow < lIncrSuitesBottomRow[0]    // diagonal tip row must be above current minimum
         ) {
 
             if (lDiagLen < lIncrSuitesSizes[0]) {
                 lDiagIncrSuites.unshift([i]);
                 lIncrSuitesSizes.unshift(lDiagLen);
+                lIncrSuitesBottomRow.unshift(lDiagBottomRow);
                 continue;
             }
 
             lDiagIncrSuites[0] = [i];
             lIncrSuitesSizes[0] = lDiagLen;
+            lIncrSuitesBottomRow[0] = lDiagBottomRow;
             continue;
         }
 
@@ -403,7 +411,7 @@ export function noalignPair(
             const lList = lDiagIncrSuites[j];
             let lMaxDiag = lDiagList[lList[lList.length - 1]];
             if (lDiag.begin >= lMaxDiag.end
-                && lMaxDiag.end - lMaxDiag.diagId < lDiagTopRow      // New must be SW of latest
+                && lIncrSuitesBottomRow[j] < lDiagTopRow      // New must be SW of latest
             ) {
 
                     // This small gap penalty favours diagonals that extend a
@@ -418,24 +426,22 @@ export function noalignPair(
                     k ++;
                 }
                 lIncrSuitesSizes.splice(k, 0, lNewSize);
+                lIncrSuitesBottomRow.splice(k, 0, lDiagBottomRow);
+
                 let lNewSeq = lList.slice();
                 lNewSeq.push(i);
-
                 lDiagIncrSuites.splice(k, 0, lNewSeq);
 
                     // clean diag lists by removing all lists that are both
                     // shorter and which tip is below this diagonal tip
 
                 while (k --) {
-                    let lTip = lDiagList[lDiagIncrSuites[k][lDiagIncrSuites.length - 1]];
-                    if (!lTip) {
-                        continue;
-                    }
-                    if (lTip.end - lTip.diagId > lDiagBottomRow
+                    if (lIncrSuitesBottomRow[k] > lDiagBottomRow
                         && lIncrSuitesSizes[k] < lNewSize
                     ) {
                         lDiagIncrSuites.splice(k, 1);
                         lIncrSuitesSizes.splice(k, 1);
+                        lIncrSuitesBottomRow.splice(k, 1);
                     }
                 }
 
@@ -590,7 +596,7 @@ export function noalignPair(
     }
 
     // Make the alignment from the diagonals and fill the gaps
-    let lDiag: TRange = lExtDiagList[0];
+    lDiag = lExtDiagList[0];
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
     for (let i = 0; i < lExtDiagList.length; i++) {
