@@ -218,6 +218,7 @@ export function noalignPair(
     }
 
     let lNbCommonWindows = 0;
+    const lMaxLen = Math.max(seqA.rawSeq.length, seqB.rawSeq.length);
     const lDiagMap = new Map<number, TRange[]>();
 
     // Loop through all kmers fron sequence A to find which ones are matching
@@ -388,8 +389,13 @@ export function noalignPair(
             if (lDiag.begin + lDiag.diagId >= lMaxDiag.end + lMaxDiag.diagId
                 && lMaxDiag.end - lMaxDiag.diagId < lDiagTopRow      // New must be SW of latest
             ) {
-                // assume that they are sorted by size
-                const lNewSize = lIncrSuitesSizes[j] + lDiagLen;
+
+                    // This small gap penalty favours diagonals that extend
+                    // a list with the lowest jump. It should only have an effect
+                    // when there is a tie between short diagonals
+
+                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
+                const lNewSize = lIncrSuitesSizes[j] + lDiagLen - lGapPenalty;
                 // TODO: binary search to find where it should be inserted now
                 let k = j;
                 while (k < lDiagIncrSuites.length && lIncrSuitesSizes[k] < lNewSize) {
