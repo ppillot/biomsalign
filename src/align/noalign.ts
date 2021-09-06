@@ -621,12 +621,12 @@ export function noalignPair(
                 rawSeq: seqA.rawSeq.substring(lMis.begin, lMis.end),
                 type: seqA.type,
                 compressedSeq: new Uint8Array(0),
-                encodedSeq: seqA.encodedSeq.slice(lMis.begin, lMis.end)
+                encodedSeq: seqA.encodedSeq.subarray(lMis.begin, lMis.end)
             }, {
                 rawSeq: seqB.rawSeq.substring(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId),
                 type: seqB.type,
                 compressedSeq: new Uint8Array(0),
-                encodedSeq: seqB.encodedSeq.slice(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
+                encodedSeq: seqB.encodedSeq.subarray(lMis.begin - lMis.beginDiagId, lMis.end - lMis.endDiagId)
             }, pAlignParam,
             ALIGNOPT.DISABLE_FAVOR_END_GAP | ALIGNOPT.DISABLE_FAVOR_START_GAP);
 
