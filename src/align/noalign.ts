@@ -484,6 +484,7 @@ export function noalignPair(
             let lWinScore = 0;
 
             while (m < lCurrentSegment.begin
+                && n < lCurrentSegment.begin - lCurrentSegment.diagId
                 && lWinScore < 2
             ) {
                 m += KSIZE;
@@ -493,7 +494,7 @@ export function noalignPair(
 
             // To avoid boundaries conditions, remove the tip of the extension
             if (m > lPrevSegment.end) {
-                lPrevSegment.end = m - EXTENSION_THRESHOLD - KSIZE;
+                lPrevSegment.end = Math.max(m - EXTENSION_THRESHOLD - KSIZE, lPrevSegment.end);
             }
 
             // Compare in backward direction until score drops or merge has been
@@ -504,13 +505,14 @@ export function noalignPair(
             lWinScore = 0;
 // WIP Make stats on full window, not just 1 Kmer
             while (m > lPrevSegment.end
+                && n > lPrevSegment.end - lPrevSegment.diagId
                 && lWinScore < 2
             ) {
                 m -= KSIZE;
                 n -= KSIZE;
                 lWinScore = dnaHammingDistance(lKmerAArr[m], lKmerBArr[n]) <= EXTENSION_THRESHOLD ? 0 : lWinScore + 1;
             }
-
+//TODO: check this, the Maths look dubious
             if (m < lCurrentSegment.begin - 2 * KSIZE) {
                 lCurrentSegment.begin = m + 3 * KSIZE + EXTENSION_THRESHOLD;
             }
@@ -531,12 +533,14 @@ export function noalignPair(
                 continue;
             }
         } else {
-            // Compare nucleotides in forward direction until score drops
+            // Compare nucleotides in forward direction until they differ
             let m = lPrevSegment.end;   // end position on seq A
             let n = m - lPrevSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
-                && m < lCurrentSegment.begin) {
+                && m < lCurrentSegment.begin
+                && n < lCurrentSegment.begin - lCurrentSegment.diagId
+            ) {
                 m ++;
                 n ++;
             }
@@ -551,7 +555,9 @@ export function noalignPair(
             n = m - lCurrentSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
-                && m > lPrevSegment.end) {
+                && m > lPrevSegment.end
+                && n > lPrevSegment.end - lPrevSegment.diagId
+            ) {
                 m --;
                 n --;
             }
