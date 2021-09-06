@@ -277,7 +277,7 @@ export function noalignPair(
         }
     }
     if (DEBUG) {
-        Log.add('Filter Minimizers');
+        Log.add('Filter Common Minimizers');
         lDebugStats['Nb common windows'] = { all: lNbCommonWindows };
     }
 
@@ -431,12 +431,12 @@ export function noalignPair(
     lDiagList = lDiagIncrSuites.pop() as TRange[];
 
     if (DEBUG) {
-        Log.add('Filter Minimizers');
+        Log.add('Filter Minimizers - Optimal list');
         let lCoverage = 0;
         lDiagList.forEach(d => {
             lCoverage += d.end - d.begin;
         });
-        lCoverage /= seqA.encodedSeq.length;
+        lCoverage /= lMaxLen;
         lDebugStats['Strict Coverage'] = {all: lCoverage};
 
         lDebugStats['Nb filtered diagonals'] = {all: lDiagList.length};
@@ -561,7 +561,7 @@ export function noalignPair(
         lExtDiagList.forEach(d => {
             lCoverage += d.end - d.begin;
         });
-        lCoverage /= seqA.encodedSeq.length;
+        lCoverage /= lMaxLen;
         lDebugStats['Coverage'] = {all: lCoverage};
         lDebugStats['Extended Diagonals'] = {all: lExtDiagList.length};
         console.table(lDebugStats);
