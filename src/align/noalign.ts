@@ -65,6 +65,14 @@ type TRange = {
     end: number
 };
 
+type TMissingSegment = {
+    beginDiagId: number,
+    endDiagId: number,
+    begin: number,
+    end: number,
+    size: number
+}
+
 type TMinzStore = {
     kmer: Uint16Array,
     kmerPos: Uint16Array,
@@ -434,7 +442,7 @@ export function noalignPair(
 
     let lPrevSegment = lDiagList[0];
     let lExtDiagList = lPrevSegment ? [lPrevSegment] : [];
-    let lMissingSegments: any[] = [];
+    let lMissingSegments: TMissingSegment[] = [];
 
     for (let i = 1; i < lDiagList.length; i++) {
         let lCurrentSegment = lDiagList[i];
@@ -504,7 +512,7 @@ export function noalignPair(
         } else {
             // Compare nucleotides in forward direction until score drops
             let m = lPrevSegment.end;   // end position on seq A
-            let n = m - lPrevSegment.diagId;
+            let n = m - lCurrentSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
                 && m < lCurrentSegment.begin) {
@@ -518,8 +526,8 @@ export function noalignPair(
 
             // Compare in backward direction until sequences differ
 
-            m = lCurrentSegment.begin;
-            n = m - lCurrentSegment.diagId;
+            n = lCurrentSegment.begin;
+            m = n - lPrevSegment.diagId;
 
             while (seqA.encodedSeq[m] === seqB.encodedSeq[n]
                 && m > lPrevSegment.end) {
@@ -566,16 +574,17 @@ export function noalignPair(
 
         let lMis = lMissingSegments[i];
         if (lMis) {
-            // special case: begin === end
-            if (lMis.begin === lMis.end) {
+            // Special case next diag begins at same col prev diag finishes
+            if (lMis.begin + lMis.beginDiagId === lMis.end + lMis.endDiagId) {
                 lEpathA.push(-Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lEpathB.push(0); // lMis.end - lMis.end
+                lEpathB.push(lMis.end - lMis.begin);
                 continue;
             }
-//TODO: this looks incorrect!? lEpathB twice?
+
+            // Special case next diag begins at same row prev diag finishes
             if (lMis.begin - lMis.beginDiagId === lMis.end - lMis.endDiagId) {
                 lEpathB.push(- Math.abs(lMis.endDiagId - lMis.beginDiagId));
-                lEpathB.push(lMis.end - lMis.begin);
+                lEpathA.push(lMis.end - lMis.begin);
                 continue;
             }
 
