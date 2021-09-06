@@ -246,6 +246,7 @@ export function noalignPair(
 
         if (!lMinzB.has(kmer)) continue;
         let listB = lMinzB.get(kmer) as number[];
+        if (listB.length > 4) continue; // poor minimizer. prevent combinatorial explosion
 
             // Compare minimized string in A with those in listB to take advantage of
             // the ones that share common minimized strings
