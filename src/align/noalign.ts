@@ -60,24 +60,38 @@ import { epath2estring, EPATH_2_STRING, estringCat, estringCountPositive,
     estringDifference, estringLength, estringMerge, estringProduct } from "../utils/estring";
 
 type TRange = {
+    /** diagonal number. 0 is the main diagonal. negative numbers are diagonals
+     * shifted towards sequence B (gaps inserted in B). Positive numbers are
+     * diagonals shifted towards sequence A (gaps inserted in A)
+     */
     diagId: number,
+    /** X axis (sequence A is the reference for this axis) coordinate for the
+     * start (top tip) of this diagonal
+     */
     begin: number,
+    /** X axis coordinate fot the end (bottom tip) of this diagonal */
     end: number
 };
 
+/** A missing segment is the zone defined between the end points of two
+ * successive diagonals */
 type TMissingSegment = {
     beginDiagId: number,
     endDiagId: number,
     begin: number,
-    end: number,
-    size: number
+    end: number
 }
 
 type TMinzStore = {
+    /** Vector of minimizing kmers found in sequence */
     kmer: Uint16Array,
+    /** Start position in sequence of kmer at same index in vector `kmer` */
     kmerPos: Uint16Array,
+    /** Start position of the window minimized by kmer at same index in vector `kmer` */
     winPos: Uint16Array,
+    /** End position of the window minimized by kmer at same index in vector `kmer` */
     winPosEnd: Uint16Array,
+    /** Number of minimizers found in store */
     count: number
 }
 
@@ -87,7 +101,8 @@ const EXTENSION_THRESHOLD = KSIZE/4; // don't extend when more than 25% differen
 
 
 /**
- *
+ * Given a sequence, computes its kmers and extracts the subset of
+ * kmers that are minimizers (kmer with minimal value) in a sliding window.
  *
  * @export
  * @param {TSequence} seq Sequence object
@@ -151,7 +166,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
         if (i<lStartStore) continue;
 
             // Remove kmers that are not in this window anymore
-
+// TODO: why use windowsize - kmersize and not just windowsize?
         while (lQueue.getHead() <= i - 1 - lStartStore) {
             lQueue.popHead();
         }
@@ -508,8 +523,7 @@ export function noalignPair(
                     beginDiagId: lPrevSegment.diagId,
                     endDiagId: lCurrentSegment.diagId,
                     begin: lPrevSegment.end,
-                    end: lCurrentSegment.begin,
-                    size: lCurrentSegment.begin-lPrevSegment.end
+                    end: lCurrentSegment.begin
                 });
                 lExtDiagList.push(lCurrentSegment);
                 lPrevSegment = lCurrentSegment;
@@ -547,8 +561,7 @@ export function noalignPair(
                 endDiagId: lCurrentSegment.diagId,
                 beginDiagId: lPrevSegment.diagId,
                 begin: lPrevSegment.end,
-                end: lCurrentSegment.begin,
-                size: lCurrentSegment.begin-lPrevSegment.end
+                end: lCurrentSegment.begin
             });
             lExtDiagList.push(lCurrentSegment);
             lPrevSegment = lCurrentSegment;
