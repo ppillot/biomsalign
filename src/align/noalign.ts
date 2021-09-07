@@ -489,11 +489,11 @@ export function noalignPair(
     // extension at 25% difference between Kmers.
     // This is measured by bitwise operations between 16bits numbers.
 
-    let lPrevSegment = lDiagList[0];
+    let lPrevSegment: TRange = { diagId: 0, begin: 0, end: 0 } //lDiagList[0];
     let lExtDiagList = lPrevSegment ? [lPrevSegment] : [];
     let lMissingSegments: TMissingSegment[] = [];
 
-    for (let i = 1; i < lDiagList.length; i++) {
+    for (let i = 0; i < lDiagList.length; i++) {
         let lCurrentSegment = lDiagList[i];
 
         // TODO: when difference between end and begin is >> KSIZE (e.g. 400),
