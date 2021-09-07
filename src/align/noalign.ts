@@ -403,7 +403,6 @@ export function noalignPair(
             continue;
         }
 
-
         // Loop over the list of increasing sequences and see to which one this
         // diagonal could be appended to.
 
@@ -446,6 +445,28 @@ export function noalignPair(
                 }
 
                 break;
+            }
+        }
+
+            // special case: the diagonal is an optimal path in itself
+
+        if (lDiagLen > lIncrSuitesSizes[lIncrSuitesSizes.length - 1]) {
+            lDiagIncrSuites.push([i]);
+            lIncrSuitesSizes.push(lDiagLen);
+            lIncrSuitesBottomRow.push(lDiagBottomRow);
+
+                // clean diag lists by removing all lists that are both
+                // shorter and which tip is below this diagonal tip
+
+            let k = i;
+            while (k --) {
+                if (lIncrSuitesBottomRow[k] > lDiagBottomRow
+                    && lIncrSuitesSizes[k] < lDiagLen
+                ) {
+                    lDiagIncrSuites.splice(k, 1);
+                    lIncrSuitesSizes.splice(k, 1);
+                    lIncrSuitesBottomRow.splice(k, 1);
+                }
             }
         }
     }
