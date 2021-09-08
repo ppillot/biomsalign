@@ -686,14 +686,27 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
     */
 
     /** Collections of list of increasing diagonals */
-    let lDiagIncrSuites: number[][] = [[0]];
+    let lIncreasingPaths: number[] = [0];
+    /** Stores at the index corresponding to each diagonal, the index of its
+     * preceding diagonal
+     */
+    let lTraceBack = new Int16Array(lDiagList.length);
+    lTraceBack[0] = -1; // starts a path
+
+    /** The current diag in the list */
     let lDiag = lDiagList[0];
+    /** Diagonal length. What it will add to the score of the path it may be appended to */
     let lDiagLen = lDiag.end - lDiag.begin;
+    /** Bottom row the diagonal extends to. It's the end posision of the segment in the Sequence B */
     let lDiagBottomRow = lDiag.end - lDiag.diagId;
+    /** Top row the diagonal begins at. It's the start posision of the segment in the Sequence B */
     let lDiagTopRow = lDiag.begin - lDiag.diagId;
     /** Length of each list of increasing diagonals as the sum of diags length */
-    let lIncrSuitesSizes: number[] = [lDiagLen];
-    let lIncrSuitesBottomRow: number[] = [lDiagBottomRow];
+    let lPathsScores: number[] = [lDiagLen];
+    /** Y position of the tip of the path */
+    let lPathsBottomRow: number[] = [lDiagBottomRow];
+
+//TODO: memoize lMinPath
 
     for (let i = 1; i < lDiagList.length; i++) {
         lDiag = lDiagList[i];
@@ -703,33 +716,35 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
 
             // Can lDiag be the start of a new list of ordered diagonals?
 
-        let lMinDiag = lDiagList[lDiagIncrSuites[0][0]];
+        let lMinDiag = lDiagList[lIncreasingPaths[0]];
 
         if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
-            && lDiagBottomRow < lIncrSuitesBottomRow[0]    // diagonal tip row must be above current minimum
+            && lDiagBottomRow < lPathsBottomRow[0]    // diagonal tip row must be above current minimum
         ) {
 
-            if (lDiagLen < lIncrSuitesSizes[0]) {
-                lDiagIncrSuites.unshift([i]);
-                lIncrSuitesSizes.unshift(lDiagLen);
-                lIncrSuitesBottomRow.unshift(lDiagBottomRow);
+            lTraceBack[i] = -1;
+
+            if (lDiagLen < lPathsScores[0]) {
+                lIncreasingPaths.unshift(i);
+                lPathsScores.unshift(lDiagLen);
+                lPathsBottomRow.unshift(lDiagBottomRow);
                 continue;
             }
 
-            lDiagIncrSuites[0] = [i];
-            lIncrSuitesSizes[0] = lDiagLen;
-            lIncrSuitesBottomRow[0] = lDiagBottomRow;
+            lIncreasingPaths[0] = i;
+            lPathsScores[0] = lDiagLen;
+            lPathsBottomRow[0] = lDiagBottomRow;
             continue;
         }
 
         // Loop over the list of increasing sequences and see to which one this
         // diagonal could be appended to.
 
-        for (let j = lDiagIncrSuites.length - 1; j >= 0; j--) {
-            const lList = lDiagIncrSuites[j];
-            let lMaxDiag = lDiagList[lList[lList.length - 1]];
+        for (let j = lIncreasingPaths.length - 1; j >= 0; j--) {
+            const lMaxDiagId = lIncreasingPaths[j];
+            let lMaxDiag = lDiagList[lMaxDiagId];
             if (lDiag.begin >= lMaxDiag.end
-                && lIncrSuitesBottomRow[j] < lDiagTopRow      // New must be SW of latest
+                && lPathsBottomRow[j] < lDiagTopRow      // New must be SW of latest
             ) {
 
                     // This small gap penalty favours diagonals that extend a
@@ -737,29 +752,28 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
                     // when there is a tie between short diagonals
 
                 const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
-                const lNewSize = lIncrSuitesSizes[j] + lDiagLen - lGapPenalty;
+                const lNewSize = lPathsScores[j] + lDiagLen - lGapPenalty;
                 // TODO: binary search to find where it should be inserted now
                 let k = j;
-                while (k < lDiagIncrSuites.length && lIncrSuitesSizes[k] < lNewSize) {
+                while (k < lIncreasingPaths.length && lPathsScores[k] < lNewSize) {
                     k ++;
                 }
-                lIncrSuitesSizes.splice(k, 0, lNewSize);
-                lIncrSuitesBottomRow.splice(k, 0, lDiagBottomRow);
+                lPathsScores.splice(k, 0, lNewSize);
+                lPathsBottomRow.splice(k, 0, lDiagBottomRow);
 
-                let lNewSeq = lList.slice();
-                lNewSeq.push(i);
-                lDiagIncrSuites.splice(k, 0, lNewSeq);
+                lTraceBack[i] = lMaxDiagId;
+                lIncreasingPaths.splice(k, 0, i);
 
                     // clean diag lists by removing all lists that are both
                     // shorter and which tip is below this diagonal tip
 
                 while (k --) {
-                    if (lIncrSuitesBottomRow[k] > lDiagBottomRow
-                        && lIncrSuitesSizes[k] < lNewSize
+                    if (lPathsBottomRow[k] > lDiagBottomRow
+                        && lPathsScores[k] < lNewSize
                     ) {
-                        lDiagIncrSuites.splice(k, 1);
-                        lIncrSuitesSizes.splice(k, 1);
-                        lIncrSuitesBottomRow.splice(k, 1);
+                        lIncreasingPaths.splice(k, 1);
+                        lPathsScores.splice(k, 1);
+                        lPathsBottomRow.splice(k, 1);
                     }
                 }
 
@@ -769,27 +783,40 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
 
             // special case: the diagonal is an optimal path in itself
 
-        if (lDiagLen > lIncrSuitesSizes[lIncrSuitesSizes.length - 1]) {
-            lDiagIncrSuites.push([i]);
-            lIncrSuitesSizes.push(lDiagLen);
-            lIncrSuitesBottomRow.push(lDiagBottomRow);
+        if (lDiagLen > lPathsScores[lPathsScores.length - 1]) {
+            lTraceBack[i] = -1;
+            lIncreasingPaths.push(i);
+            lPathsScores.push(lDiagLen);
+            lPathsBottomRow.push(lDiagBottomRow);
 
                 // clean diag lists by removing all lists that are both
                 // shorter and which tip is below this diagonal tip
 
             let k = i;
             while (k --) {
-                if (lIncrSuitesBottomRow[k] > lDiagBottomRow
-                    && lIncrSuitesSizes[k] < lDiagLen
+                if (lPathsBottomRow[k] > lDiagBottomRow
+                    && lPathsScores[k] < lDiagLen
                 ) {
-                    lDiagIncrSuites.splice(k, 1);
-                    lIncrSuitesSizes.splice(k, 1);
-                    lIncrSuitesBottomRow.splice(k, 1);
+                    lIncreasingPaths.splice(k, 1);
+                    lPathsScores.splice(k, 1);
+                    lPathsBottomRow.splice(k, 1);
                 }
             }
         }
     }
 
-    let lDiagSuite = lDiagIncrSuites.pop()?.map(idx => lDiagList[idx]) ?? [];
-    return lDiagSuite;
+    let lPath = [];
+    let k = lIncreasingPaths.pop() ?? 0;
+    let lSafeguard = k;
+    while (k > -1 && lSafeguard > -1) {
+        lPath.push(k);
+        k = lTraceBack[k];
+        lSafeguard --;
+    }
+
+    let lLongestPath: TRange[] = [];
+    for (let i = lPath.length - 1; i >=0; i--) {
+        lLongestPath.push(lDiagList[lPath[i]]);
+    }
+    return lLongestPath;
 }
