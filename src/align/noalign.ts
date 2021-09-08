@@ -333,145 +333,7 @@ export function noalignPair(
     });
     if (DEBUG) Log.add('Sort Minimizers');
 
-    // Find optimal order of diagonals using Longest Increasing Sequence
-    // like algorithm. Here, the WOrd Sequence is replaced by Suite so as to
-    // avoid confusion with biological sequences.
-    // In the context of diagonals, a new diagonal can be appended to a list
-    // iff it is in the SW quadrant from the bottom tip of the last diagonal
-    // in the list.
-    // ____________________________________________________________________
-    // |              \
-    // |  \            \ B
-    // |   \ A          \
-    // |    \                 \
-    // |                       \ C
-    // |                        \
-    //
-    // C can extend B but it can't extand A
-    //
-    // A new diagonal can start a new list if:
-    // - its diag id is > to the one of the current shorter list in the suites
-    //   (the rationale is that any diagonal that would extend a diagonal below
-    //   the smallest one would also be an extension of the smallest one)
-    // - and its row (defined by begin - diag id) is lower.
-    //   (the rationale is that this new diagonal will be able to catch next
-    //  diagonals that can't be caught by the current minimum)
-    //
-    // Otherwise, we search for the list of diagonals with maximum size that can
-    // accept the new diagonal and we duplicate it + append the new diagonal to
-    // it. The new suite is placed in the list of suit so that the order of
-    // increasing sizes is maintained.
-    // When this addition is made, the list of suites is cleaned to remove any
-    // list that is shorter and that also extends past this new extent (in other
-    // words a diagonal that extends past, is a diagonal which bottom tip is
-    // below the lowest point of the new diagonal).
-
-    /** Collections of list of increasing diagonals */
-    let lDiagIncrSuites: number[][] = [[0]];
-    let lDiag = lDiagList[0];
-    let lDiagLen = lDiag.end - lDiag.begin;
-    let lDiagBottomRow = lDiag.end - lDiag.diagId;
-    let lDiagTopRow = lDiag.begin - lDiag.diagId;
-    /** Length of each list of increasing diagonals as the sum of diags length */
-    let lIncrSuitesSizes: number[] = [lDiagLen];
-    let lIncrSuitesBottomRow: number[] = [lDiagBottomRow];
-
-    for (let i = 1; i < lDiagList.length; i++) {
-        lDiag = lDiagList[i];
-        lDiagLen = lDiag.end - lDiag.begin;
-        lDiagBottomRow = lDiag.end - lDiag.diagId;
-        lDiagTopRow = lDiag.begin - lDiag.diagId;
-
-            // Can lDiag be the start of a new list of ordered diagonals?
-
-        let lMinDiag = lDiagList[lDiagIncrSuites[0][0]];
-
-        if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
-            && lDiagBottomRow < lIncrSuitesBottomRow[0]    // diagonal tip row must be above current minimum
-        ) {
-
-            if (lDiagLen < lIncrSuitesSizes[0]) {
-                lDiagIncrSuites.unshift([i]);
-                lIncrSuitesSizes.unshift(lDiagLen);
-                lIncrSuitesBottomRow.unshift(lDiagBottomRow);
-                continue;
-            }
-
-            lDiagIncrSuites[0] = [i];
-            lIncrSuitesSizes[0] = lDiagLen;
-            lIncrSuitesBottomRow[0] = lDiagBottomRow;
-            continue;
-        }
-
-        // Loop over the list of increasing sequences and see to which one this
-        // diagonal could be appended to.
-
-        for (let j = lDiagIncrSuites.length - 1; j >= 0; j--) {
-            const lList = lDiagIncrSuites[j];
-            let lMaxDiag = lDiagList[lList[lList.length - 1]];
-            if (lDiag.begin >= lMaxDiag.end
-                && lIncrSuitesBottomRow[j] < lDiagTopRow      // New must be SW of latest
-            ) {
-
-                    // This small gap penalty favours diagonals that extend a
-                    // list with the lowest jump. It should only have an effect
-                    // when there is a tie between short diagonals
-
-                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
-                const lNewSize = lIncrSuitesSizes[j] + lDiagLen - lGapPenalty;
-                // TODO: binary search to find where it should be inserted now
-                let k = j;
-                while (k < lDiagIncrSuites.length && lIncrSuitesSizes[k] < lNewSize) {
-                    k ++;
-                }
-                lIncrSuitesSizes.splice(k, 0, lNewSize);
-                lIncrSuitesBottomRow.splice(k, 0, lDiagBottomRow);
-
-                let lNewSeq = lList.slice();
-                lNewSeq.push(i);
-                lDiagIncrSuites.splice(k, 0, lNewSeq);
-
-                    // clean diag lists by removing all lists that are both
-                    // shorter and which tip is below this diagonal tip
-
-                while (k --) {
-                    if (lIncrSuitesBottomRow[k] > lDiagBottomRow
-                        && lIncrSuitesSizes[k] < lNewSize
-                    ) {
-                        lDiagIncrSuites.splice(k, 1);
-                        lIncrSuitesSizes.splice(k, 1);
-                        lIncrSuitesBottomRow.splice(k, 1);
-                    }
-                }
-
-                break;
-            }
-        }
-
-            // special case: the diagonal is an optimal path in itself
-
-        if (lDiagLen > lIncrSuitesSizes[lIncrSuitesSizes.length - 1]) {
-            lDiagIncrSuites.push([i]);
-            lIncrSuitesSizes.push(lDiagLen);
-            lIncrSuitesBottomRow.push(lDiagBottomRow);
-
-                // clean diag lists by removing all lists that are both
-                // shorter and which tip is below this diagonal tip
-
-            let k = i;
-            while (k --) {
-                if (lIncrSuitesBottomRow[k] > lDiagBottomRow
-                    && lIncrSuitesSizes[k] < lDiagLen
-                ) {
-                    lDiagIncrSuites.splice(k, 1);
-                    lIncrSuitesSizes.splice(k, 1);
-                    lIncrSuitesBottomRow.splice(k, 1);
-                }
-            }
-        }
-    }
-
-    lDiagList = lDiagIncrSuites.pop()?.map(idx => lDiagList[idx]) ?? [];
+    lDiagList = extractLongestPath(lDiagList, lMaxLen);
 
     if (DEBUG) {
         Log.add('Filter Minimizers - Optimal list');
@@ -617,7 +479,7 @@ export function noalignPair(
     }
 
     // Make the alignment from the diagonals and fill the gaps
-    lDiag = lExtDiagList[0];
+    let lDiag = lExtDiagList[0];
     const lEpathA: number[] = [];
     const lEpathB: number[] = [];
     for (let i = 0; i < lExtDiagList.length; i++) {
@@ -773,4 +635,161 @@ export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentPara
 
     return lEStrings;
 
+}
+
+/**
+ * Find an optimal order of traversal among a list of diagonals so that they
+ * make the longest past covered by diagonals in the alignment matrix between
+ * both sequences.
+ * @param lDiagList list of diagonals ordered from left to right and top to
+ *                  bottom
+ * @param lMaxLen   maximum sequence length. Used to compute a minimal gap
+ *                  penalty
+ * @returns
+ */
+function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
+
+    /* Find optimal order of diagonals using Longest Increasing Sequence
+       like algorithm. Here, the Word Sequence is replaced by Suite so as to
+       avoid confusion with biological sequences.
+       In the context of diagonals, a new diagonal can be appended to a list
+       iff it is in the SW quadrant from the bottom tip of the last diagonal
+       in the list.
+       ____________________________________________________________________
+       |              \
+       |  \            \ B
+       |   \ A          \
+       |    \                 \
+       |                       \ C
+       |                        \
+
+       C can extend B but it can't extand A
+
+       A new diagonal can start a new list if:
+       - its diag id is > to the one of the current shorter list in the suites
+         (the rationale is that any diagonal that would extend a diagonal below
+         the smallest one would also be an extension of the smallest one)
+       - and its row (defined by begin - diag id) is lower.
+         (the rationale is that this new diagonal will be able to catch next
+         diagonals that can't be caught by the current minimum)
+       - or if this diagonal by itself long enough to be the optimum while not
+         being able to be appended to any other list.
+
+       Otherwise, we search for the list of diagonals with maximum size that can
+       accept the new diagonal and we duplicate it + append the new diagonal to
+       it. The new suite is placed in the list of suit so that the order of
+       increasing sizes is maintained.
+       When this addition is made, the list of suites is cleaned to remove any
+       list that is shorter and that also extends past this new extent (in other
+       words a diagonal that extends past, is a diagonal which bottom tip is
+       below the lowest point of the new diagonal).
+    */
+
+    /** Collections of list of increasing diagonals */
+    let lDiagIncrSuites: number[][] = [[0]];
+    let lDiag = lDiagList[0];
+    let lDiagLen = lDiag.end - lDiag.begin;
+    let lDiagBottomRow = lDiag.end - lDiag.diagId;
+    let lDiagTopRow = lDiag.begin - lDiag.diagId;
+    /** Length of each list of increasing diagonals as the sum of diags length */
+    let lIncrSuitesSizes: number[] = [lDiagLen];
+    let lIncrSuitesBottomRow: number[] = [lDiagBottomRow];
+
+    for (let i = 1; i < lDiagList.length; i++) {
+        lDiag = lDiagList[i];
+        lDiagLen = lDiag.end - lDiag.begin;
+        lDiagBottomRow = lDiag.end - lDiag.diagId;
+        lDiagTopRow = lDiag.begin - lDiag.diagId;
+
+            // Can lDiag be the start of a new list of ordered diagonals?
+
+        let lMinDiag = lDiagList[lDiagIncrSuites[0][0]];
+
+        if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
+            && lDiagBottomRow < lIncrSuitesBottomRow[0]    // diagonal tip row must be above current minimum
+        ) {
+
+            if (lDiagLen < lIncrSuitesSizes[0]) {
+                lDiagIncrSuites.unshift([i]);
+                lIncrSuitesSizes.unshift(lDiagLen);
+                lIncrSuitesBottomRow.unshift(lDiagBottomRow);
+                continue;
+            }
+
+            lDiagIncrSuites[0] = [i];
+            lIncrSuitesSizes[0] = lDiagLen;
+            lIncrSuitesBottomRow[0] = lDiagBottomRow;
+            continue;
+        }
+
+        // Loop over the list of increasing sequences and see to which one this
+        // diagonal could be appended to.
+
+        for (let j = lDiagIncrSuites.length - 1; j >= 0; j--) {
+            const lList = lDiagIncrSuites[j];
+            let lMaxDiag = lDiagList[lList[lList.length - 1]];
+            if (lDiag.begin >= lMaxDiag.end
+                && lIncrSuitesBottomRow[j] < lDiagTopRow      // New must be SW of latest
+            ) {
+
+                    // This small gap penalty favours diagonals that extend a
+                    // list with the lowest jump. It should only have an effect
+                    // when there is a tie between short diagonals
+
+                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
+                const lNewSize = lIncrSuitesSizes[j] + lDiagLen - lGapPenalty;
+                // TODO: binary search to find where it should be inserted now
+                let k = j;
+                while (k < lDiagIncrSuites.length && lIncrSuitesSizes[k] < lNewSize) {
+                    k ++;
+                }
+                lIncrSuitesSizes.splice(k, 0, lNewSize);
+                lIncrSuitesBottomRow.splice(k, 0, lDiagBottomRow);
+
+                let lNewSeq = lList.slice();
+                lNewSeq.push(i);
+                lDiagIncrSuites.splice(k, 0, lNewSeq);
+
+                    // clean diag lists by removing all lists that are both
+                    // shorter and which tip is below this diagonal tip
+
+                while (k --) {
+                    if (lIncrSuitesBottomRow[k] > lDiagBottomRow
+                        && lIncrSuitesSizes[k] < lNewSize
+                    ) {
+                        lDiagIncrSuites.splice(k, 1);
+                        lIncrSuitesSizes.splice(k, 1);
+                        lIncrSuitesBottomRow.splice(k, 1);
+                    }
+                }
+
+                break;
+            }
+        }
+
+            // special case: the diagonal is an optimal path in itself
+
+        if (lDiagLen > lIncrSuitesSizes[lIncrSuitesSizes.length - 1]) {
+            lDiagIncrSuites.push([i]);
+            lIncrSuitesSizes.push(lDiagLen);
+            lIncrSuitesBottomRow.push(lDiagBottomRow);
+
+                // clean diag lists by removing all lists that are both
+                // shorter and which tip is below this diagonal tip
+
+            let k = i;
+            while (k --) {
+                if (lIncrSuitesBottomRow[k] > lDiagBottomRow
+                    && lIncrSuitesSizes[k] < lDiagLen
+                ) {
+                    lDiagIncrSuites.splice(k, 1);
+                    lIncrSuitesSizes.splice(k, 1);
+                    lIncrSuitesBottomRow.splice(k, 1);
+                }
+            }
+        }
+    }
+
+    let lDiagSuite = lDiagIncrSuites.pop()?.map(idx => lDiagList[idx]) ?? [];
+    return lDiagSuite;
 }
