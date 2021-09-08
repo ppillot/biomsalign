@@ -705,8 +705,10 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
     let lPathsScores: number[] = [lDiagLen];
     /** Y position of the tip of the path */
     let lPathsBottomRow: number[] = [lDiagBottomRow];
-
-//TODO: memoize lMinPath
+    /** Reference to current minimum in list of paths */
+    let lMinDiag = lDiagList[0];
+    let lMaxDiagId = 0;
+    let lMaxDiag = lDiagList[lMaxDiagId];
 
     for (let i = 1; i < lDiagList.length; i++) {
         lDiag = lDiagList[i];
@@ -714,15 +716,12 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
         lDiagBottomRow = lDiag.end - lDiag.diagId;
         lDiagTopRow = lDiag.begin - lDiag.diagId;
 
-            // Can lDiag be the start of a new list of ordered diagonals?
-
-        let lMinDiag = lDiagList[lIncreasingPaths[0]];
-
         if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
             && lDiagBottomRow < lPathsBottomRow[0]    // diagonal tip row must be above current minimum
         ) {
 
             lTraceBack[i] = -1;
+            lMinDiag = lDiagList[i];
 
             if (lDiagLen < lPathsScores[0]) {
                 lIncreasingPaths.unshift(i);
@@ -741,8 +740,8 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
         // diagonal could be appended to.
 
         for (let j = lIncreasingPaths.length - 1; j >= 0; j--) {
-            const lMaxDiagId = lIncreasingPaths[j];
-            let lMaxDiag = lDiagList[lMaxDiagId];
+            lMaxDiagId = lIncreasingPaths[j];
+            lMaxDiag = lDiagList[lMaxDiagId];
             if (lDiag.begin >= lMaxDiag.end
                 && lPathsBottomRow[j] < lDiagTopRow      // New must be SW of latest
             ) {
@@ -751,7 +750,7 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
                     // list with the lowest jump. It should only have an effect
                     // when there is a tie between short diagonals
 
-                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiag.diagId) / lMaxLen;
+                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiagId) / lMaxLen;
                 const lNewSize = lPathsScores[j] + lDiagLen - lGapPenalty;
                 // TODO: binary search to find where it should be inserted now
                 let k = j;
