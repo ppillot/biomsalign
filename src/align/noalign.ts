@@ -717,12 +717,50 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
     let lMaxDiag = pDiagList[lMaxDiagId];
     let lOptimumScore = lDiagLen;
 
+    let lGCCount = 0;
+
     for (let i = 1; i < pDiagList.length; i++) {
         lDiag = pDiagList[i];
         lDiagLen = lDiag.end - lDiag.begin;
         lDiagBottomRow = lDiag.end - lDiag.diagId;
         lDiagTopRow = lDiag.begin - lDiag.diagId;
         lDiagDistToEnd = lDiag.diagId < lDividerDiag ? pLenB - lDiagBottomRow : pLenA - lDiag.end;
+
+            // Garbage Collection
+
+        if (lGCCount === 20) {
+            lGCCount = 0;
+            let lGarbageIdx: number[] = [];
+            let k = lIncreasingPaths.length - 1;
+            let lPrevBottom = lPathsBottomRow[k];
+            let lRemainingDist = pLenA - lDiag.begin;
+
+                // clean paths array by removing all paths:
+                // - that extend below higher scoring path
+                // - that score too low for ever being in an optimal path
+
+            while (k --) {
+                if (lPathsBottomRow[k] > lPrevBottom) {
+                    lGarbageIdx.push(k);
+                    continue;
+                }
+
+                lPrevBottom = lPathsBottomRow[k];
+
+                if (lPathsScores[k] + Math.min(lPathsDistToEnd[k], lRemainingDist) < lOptimumScore) {
+                    lGarbageIdx.push(k);
+                }
+            }
+
+            lGarbageIdx.forEach((k) => {
+                lIncreasingPaths.splice(k, 1);
+                lPathsScores.splice(k, 1);
+                lPathsBottomRow.splice(k, 1);
+                lPathsDistToEnd.splice(k, 1);
+            });
+
+
+        }
 
         if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
             && lDiagBottomRow < lPathsBottomRow[0]    // diagonal tip row must be above current minimum
@@ -732,6 +770,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
 
             lTraceBack[i] = -1;
             lMinDiag = pDiagList[i];
+            lGCCount ++;
 
             if (lDiagLen < lPathsScores[0]) {
                 lIncreasingPaths.unshift(i);
@@ -790,23 +829,8 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
                     lIncreasingPaths.splice(k, 0, i);
                 }
 
-
                 lTraceBack[i] = lMaxDiagId;
-
-
-                    // clean diag lists by removing all lists that are both
-                    // shorter and which tip is below this diagonal tip
-
-                while (k --) {
-                    if (lPathsBottomRow[k] > lDiagBottomRow
-                        && lPathsScores[k] < lNewSize
-                    ) {
-                        lIncreasingPaths.splice(k, 1);
-                        lPathsScores.splice(k, 1);
-                        lPathsBottomRow.splice(k, 1);
-                        lPathsDistToEnd.splice(k, 1);
-                    }
-                }
+                lGCCount ++;
 
                 break;
             }
@@ -822,20 +846,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
             lPathsBottomRow .push(lDiagBottomRow);
             lIncreasingPaths.push(i);
 
-                // clean diag lists by removing all lists that are both
-                // shorter and which tip is below this diagonal tip
-
-            let k = i;
-            while (k --) {
-                if (lPathsBottomRow[k] > lDiagBottomRow
-                    && lPathsScores[k] < lDiagLen
-                ) {
-                    lIncreasingPaths.splice(k, 1);
-                    lPathsScores.splice(k, 1);
-                    lPathsBottomRow.splice(k, 1);
-                    lPathsDistToEnd.splice(k, 1);
-                }
-            }
+            lGCCount++;
         }
     }
 
