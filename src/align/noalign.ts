@@ -686,6 +686,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
     */
 
     const lUnitPenalty = 1/Math.max(pLenA, pLenB);
+    const lDividerDiag = pLenA - pLenB;
 
     /** Collections of list of increasing diagonals */
     let lIncreasingPaths: number[] = [0];
@@ -703,39 +704,48 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
     let lDiagBottomRow = lDiag.end - lDiag.diagId;
     /** Top row the diagonal begins at. It's the start posision of the segment in the Sequence B */
     let lDiagTopRow = lDiag.begin - lDiag.diagId;
-    let lDiagDistToEnd: number[] = [Math.min(pLenB - lDiagBottomRow, pLenA - lDiag.end)];
+    let lDiagDistToEnd = Math.min(pLenB - lDiagBottomRow, pLenA - lDiag.end);
     /** Length of each list of increasing diagonals as the sum of diags length */
     let lPathsScores: number[] = [lDiagLen];
     /** Y position of the tip of the path */
     let lPathsBottomRow: number[] = [lDiagBottomRow];
+
+    let lPathsDistToEnd = [lDiagDistToEnd];
     /** Reference to current minimum in list of paths */
     let lMinDiag = pDiagList[0];
     let lMaxDiagId = 0;
     let lMaxDiag = pDiagList[lMaxDiagId];
+    let lOptimumScore = lDiagLen;
 
     for (let i = 1; i < pDiagList.length; i++) {
         lDiag = pDiagList[i];
         lDiagLen = lDiag.end - lDiag.begin;
         lDiagBottomRow = lDiag.end - lDiag.diagId;
         lDiagTopRow = lDiag.begin - lDiag.diagId;
+        lDiagDistToEnd = lDiag.diagId < lDividerDiag ? pLenB - lDiagBottomRow : pLenA - lDiag.end;
 
         if (lDiag.diagId >= lMinDiag.diagId     // diagonals below the minimum can't be a candidate for a new minimum
             && lDiagBottomRow < lPathsBottomRow[0]    // diagonal tip row must be above current minimum
         ) {
+
+            if (lDiagLen + lDiagDistToEnd < lOptimumScore) continue;
 
             lTraceBack[i] = -1;
             lMinDiag = pDiagList[i];
 
             if (lDiagLen < lPathsScores[0]) {
                 lIncreasingPaths.unshift(i);
-                lPathsScores.unshift(lDiagLen);
-                lPathsBottomRow.unshift(lDiagBottomRow);
+                lPathsScores    .unshift(lDiagLen);
+                lPathsBottomRow .unshift(lDiagBottomRow);
+                lPathsDistToEnd .unshift(lDiagDistToEnd);
                 continue;
             }
 
+            if (lDiagLen > lOptimumScore) lOptimumScore = lDiagLen;
             lIncreasingPaths[0] = i;
-            lPathsScores[0] = lDiagLen;
-            lPathsBottomRow[0] = lDiagBottomRow;
+            lPathsScores    [0] = lDiagLen;
+            lPathsBottomRow [0] = lDiagBottomRow;
+            lPathsDistToEnd [0] = lDiagDistToEnd;
             continue;
         }
 
@@ -755,16 +765,34 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
 
                 const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiagId) * lUnitPenalty;
                 const lNewSize = lPathsScores[j] + lDiagLen - lGapPenalty;
+
+                if (lNewSize + lDiagDistToEnd < lOptimumScore) continue;    // no hope for being a future optimimum
+
                 // TODO: binary search to find where it should be inserted now
                 let k = j;
                 while (k < lIncreasingPaths.length && lPathsScores[k] < lNewSize) {
                     k ++;
                 }
-                lPathsScores.splice(k, 0, lNewSize);
-                lPathsBottomRow.splice(k, 0, lDiagBottomRow);
+
+                if (k === lIncreasingPaths.length) {
+                    lOptimumScore = lNewSize;
+
+                    lPathsDistToEnd .push(lDiagDistToEnd);
+                    lPathsScores    .push(lNewSize);
+                    lPathsBottomRow .push(lDiagBottomRow);
+                    lIncreasingPaths.push(i);
+                } else {
+                    if (lDiagBottomRow >= lPathsBottomRow[lPathsBottomRow.length - 1]) continue;
+
+                    lPathsDistToEnd .splice(k, 0, lDiagDistToEnd);
+                    lPathsScores    .splice(k, 0, lNewSize);
+                    lPathsBottomRow .splice(k, 0, lDiagBottomRow);
+                    lIncreasingPaths.splice(k, 0, i);
+                }
+
 
                 lTraceBack[i] = lMaxDiagId;
-                lIncreasingPaths.splice(k, 0, i);
+
 
                     // clean diag lists by removing all lists that are both
                     // shorter and which tip is below this diagonal tip
@@ -776,6 +804,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
                         lIncreasingPaths.splice(k, 1);
                         lPathsScores.splice(k, 1);
                         lPathsBottomRow.splice(k, 1);
+                        lPathsDistToEnd.splice(k, 1);
                     }
                 }
 
@@ -785,11 +814,13 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
 
             // special case: the diagonal is an optimal path in itself
 
-        if (lDiagLen > lPathsScores[lPathsScores.length - 1]) {
+        if (lDiagLen > lOptimumScore) {
             lTraceBack[i] = -1;
+            lOptimumScore = lDiagLen;
+            lPathsDistToEnd .push(lDiagDistToEnd);
+            lPathsScores    .push(lDiagLen);
+            lPathsBottomRow .push(lDiagBottomRow);
             lIncreasingPaths.push(i);
-            lPathsScores.push(lDiagLen);
-            lPathsBottomRow.push(lDiagBottomRow);
 
                 // clean diag lists by removing all lists that are both
                 // shorter and which tip is below this diagonal tip
@@ -802,6 +833,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
                     lIncreasingPaths.splice(k, 1);
                     lPathsScores.splice(k, 1);
                     lPathsBottomRow.splice(k, 1);
+                    lPathsDistToEnd.splice(k, 1);
                 }
             }
         }
