@@ -333,7 +333,7 @@ export function noalignPair(
     });
     if (DEBUG) Log.add('Sort Minimizers');
 
-    lDiagList = extractLongestPath(lDiagList, lMaxLen);
+    lDiagList = extractLongestPath(lDiagList, seqA.encodedSeq.length, seqB.encodedSeq.length);
 
     if (DEBUG) {
         Log.add('Filter Minimizers - Optimal list');
@@ -641,13 +641,13 @@ export function centerStarNoAlign(pSeq: TSequence[], pAlignParam: TAlignmentPara
  * Find an optimal order of traversal among a list of diagonals so that they
  * make the longest past covered by diagonals in the alignment matrix between
  * both sequences.
- * @param lDiagList list of diagonals ordered from left to right and top to
+ * @param pDiagList list of diagonals ordered from left to right and top to
  *                  bottom
  * @param lMaxLen   maximum sequence length. Used to compute a minimal gap
  *                  penalty
  * @returns
  */
-function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
+function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) {
 
     /* Find optimal order of diagonals using Longest Increasing Sequence
        like algorithm. Here, the Word Sequence is replaced by Suite so as to
@@ -685,33 +685,36 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
        below the lowest point of the new diagonal).
     */
 
+    const lUnitPenalty = 1/Math.max(pLenA, pLenB);
+
     /** Collections of list of increasing diagonals */
     let lIncreasingPaths: number[] = [0];
     /** Stores at the index corresponding to each diagonal, the index of its
      * preceding diagonal
      */
-    let lTraceBack = new Int16Array(lDiagList.length);
+    let lTraceBack = new Int16Array(pDiagList.length);
     lTraceBack[0] = -1; // starts a path
 
     /** The current diag in the list */
-    let lDiag = lDiagList[0];
+    let lDiag = pDiagList[0];
     /** Diagonal length. What it will add to the score of the path it may be appended to */
     let lDiagLen = lDiag.end - lDiag.begin;
     /** Bottom row the diagonal extends to. It's the end posision of the segment in the Sequence B */
     let lDiagBottomRow = lDiag.end - lDiag.diagId;
     /** Top row the diagonal begins at. It's the start posision of the segment in the Sequence B */
     let lDiagTopRow = lDiag.begin - lDiag.diagId;
+    let lDiagDistToEnd: number[] = [Math.min(pLenB - lDiagBottomRow, pLenA - lDiag.end)];
     /** Length of each list of increasing diagonals as the sum of diags length */
     let lPathsScores: number[] = [lDiagLen];
     /** Y position of the tip of the path */
     let lPathsBottomRow: number[] = [lDiagBottomRow];
     /** Reference to current minimum in list of paths */
-    let lMinDiag = lDiagList[0];
+    let lMinDiag = pDiagList[0];
     let lMaxDiagId = 0;
-    let lMaxDiag = lDiagList[lMaxDiagId];
+    let lMaxDiag = pDiagList[lMaxDiagId];
 
-    for (let i = 1; i < lDiagList.length; i++) {
-        lDiag = lDiagList[i];
+    for (let i = 1; i < pDiagList.length; i++) {
+        lDiag = pDiagList[i];
         lDiagLen = lDiag.end - lDiag.begin;
         lDiagBottomRow = lDiag.end - lDiag.diagId;
         lDiagTopRow = lDiag.begin - lDiag.diagId;
@@ -721,7 +724,7 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
         ) {
 
             lTraceBack[i] = -1;
-            lMinDiag = lDiagList[i];
+            lMinDiag = pDiagList[i];
 
             if (lDiagLen < lPathsScores[0]) {
                 lIncreasingPaths.unshift(i);
@@ -741,7 +744,7 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
 
         for (let j = lIncreasingPaths.length - 1; j >= 0; j--) {
             lMaxDiagId = lIncreasingPaths[j];
-            lMaxDiag = lDiagList[lMaxDiagId];
+            lMaxDiag = pDiagList[lMaxDiagId];
             if (lDiag.begin >= lMaxDiag.end
                 && lPathsBottomRow[j] < lDiagTopRow      // New must be SW of latest
             ) {
@@ -750,7 +753,7 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
                     // list with the lowest jump. It should only have an effect
                     // when there is a tie between short diagonals
 
-                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiagId) / lMaxLen;
+                const lGapPenalty = Math.abs(lDiag.diagId - lMaxDiagId) * lUnitPenalty;
                 const lNewSize = lPathsScores[j] + lDiagLen - lGapPenalty;
                 // TODO: binary search to find where it should be inserted now
                 let k = j;
@@ -815,7 +818,7 @@ function extractLongestPath (lDiagList: TRange[], lMaxLen: number) {
 
     let lLongestPath: TRange[] = [];
     for (let i = lPath.length - 1; i >=0; i--) {
-        lLongestPath.push(lDiagList[lPath[i]]);
+        lLongestPath.push(pDiagList[lPath[i]]);
     }
     return lLongestPath;
 }
