@@ -152,6 +152,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
     };
     let lCurrMinzPos = NaN;
     let j = 0;
+    let lWinStart = - lStartStore - 1;
 
         // Main loop for minimizer computation.
         // i is indexing kmers. The kmer at index i is considered to be the
@@ -167,14 +168,15 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
+        lWinStart++;
 
             // Remove kmers with lower order than current kmer
             // Note: for sake of symplicity, order is just kmer value.
 
         while (!lQueue.isEmpty
             && (
-                (j = lQueue.getTail()) < i - lStartStore  // not in this window anymore
-                || lKarr[j] >= lKmer                      // can't be a minimizer of this and future windows: overthrown by kmer(i)
+                (j = lQueue.getTail()) < lWinStart  // not in this window anymore
+                || lKarr[j] >= lKmer                // can't be a minimizer of this and future windows: overthrown by kmer(i)
             )
         ){
             lQueue.popTail();
@@ -184,11 +186,11 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
         lQueue.pushTail(i);
 
-        if (i < lStartStore) continue;  // compute first window
+        if (lWinStart < 0) continue;  // compute all kmers in first window first
 
             // Remove kmers that are not in this window anymore
 
-        while (lQueue.getHead() < i - lStartStore) {
+        while (lQueue.getHead() < lWinStart) {
             lQueue.popHead();
         }
 
@@ -208,7 +210,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
             lStoreMinz.kmer     [lIdx] = lHeadKmer;
             lStoreMinz.kmerPos  [lIdx] = lHead;
-            lStoreMinz.winPos   [lIdx] = i - lStartStore;
+            lStoreMinz.winPos   [lIdx] = lWinStart;
             lStoreMinz.winPosEnd[lIdx] = i + lKSIZE;
             lCurrMinzPos = lHead;
 
