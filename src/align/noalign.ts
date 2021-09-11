@@ -188,7 +188,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
             // Remove kmers that are not in this window anymore
 
-        while (lQueue.getHead() <= i - 1 - lStartStore) {
+        while (lQueue.getHead() < i - lStartStore) {
             lQueue.popHead();
         }
 
