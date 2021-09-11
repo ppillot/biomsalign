@@ -158,7 +158,12 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             // Remove kmers with lower order than current kmer
             // Note: for sake of symplicity, order is just kmer value.
 
-        while (!lQueue.isEmpty && lKarr[lQueue.getTail()] >= lKmer) {
+        while (!lQueue.isEmpty
+            && (
+                (j = lQueue.getTail()) < i - lStartStore  // not in this window anymore
+                || lKarr[j] >= lKmer                      // can't be a minimizer of this and future windows: overthrown by kmer(i)
+            )
+        ){
             lQueue.popTail();
         }
         lQueue.pushTail(i);
