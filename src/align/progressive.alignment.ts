@@ -63,7 +63,7 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
                     Log.add(`seq ${nodeA.numSeq} - seq ${nodeB.numSeq}`);
 
             } else { //B is a MSA
-                nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
+                nodeB.tabWeight = nodeB.numSeq.map(seqidx => tabWeight[seqidx]);
 
                     // !!! B and A order are inverted
 
@@ -90,8 +90,8 @@ export function progressiveAlignment(seq: TSequence[], pParam: TAlignmentParam) 
             }
         } else if (!isLeafNode(nodeB)) { // A & B are both MSA
 
-            nodeB.tabWeight = tabWeight.filter((_, idx) => nodeB.numSeq.includes(idx));
-            nodeA.tabWeight = tabWeight.filter((_, idx) => nodeA.numSeq.includes(idx));
+            nodeB.tabWeight = nodeB.numSeq.map(seqidx => tabWeight[seqidx]);
+            nodeA.tabWeight = nodeA.numSeq.map(seqidx => tabWeight[seqidx]);
 
             const lR = MSAMSAAlignment(nodeA, nodeB, pParam);
             result.score = lR.score;
