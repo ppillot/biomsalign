@@ -374,7 +374,7 @@ export function noalignPair(
     // This is measured by bitwise operations between 16bits numbers.
 
     let lPrevSegment: TRange = { diagId: 0, begin: 0, end: 0 } //lDiagList[0];
-    let lExtDiagList = lPrevSegment ? [lPrevSegment] : [];
+    let lExtDiagList = [lPrevSegment];
     let lMissingSegments: TMissingSegment[] = [];
 
     for (let i = 0; i < lDiagList.length; i++) {
