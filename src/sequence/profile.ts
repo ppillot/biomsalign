@@ -354,6 +354,8 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
 
     const lProf = new ProfPos(l, params.abSize, n, w);
 
+    console.log(pProfA.weight, pProfB.weight, w)
+
     const lGapO = params.gapOP;
     let lProx = lProf.getProxy();
     let lProxA = pProfA.getProxy();
@@ -389,6 +391,7 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lAisGapOpening = false;
             lAisGapClosing = false;
         }
+        lAiPrev = lAi;
 
         lBi = lBidx[col];
         lProxB.setProxy(lBi);
@@ -400,15 +403,18 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lBisGapOpening = false;
             lBisGapClosing = false;
         }
+        lBiPrev = lBi;
 
         lNbRes = 0;
+
+            // First case: no gap introduced at this position
 
         if (lAi !== -1 && lBi !== -1) {
             lProx.m_fcStartOcc = lProxA.m_fcStartOcc + lProxB.m_fcStartOcc;
             lProx.m_fcEndOcc   = lProxA.m_fcEndOcc   + lProxB.m_fcEndOcc;
             lProx.m_fOcc       = lProxA.m_fOcc       + lProxB.m_fOcc;
             lProx.m_fcCounts.set(lProxA.m_fcCounts);
-            lProx.m_wCounts.set(lProxA.m_wCounts);
+            lProx.m_wCounts .set(lProxA.m_wCounts);
             for (let i = 0; i < pProfB.alphaSize; i++) {
                 let v = pProfB.m_fcCounts[i];
                 if (v) {
@@ -424,7 +430,9 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lProx.m_uResidueGroup = lNbRes;
         }
 
-        if (lAi == -1) {
+            // Gap introduced in profile A only
+
+        else if (lAi == -1) {
             lProx.m_fcStartOcc = lProxB.m_fcStartOcc + (lAisGapOpening ? pProfA.weight : 0);
             lProx.m_fcEndOcc   = lProxB.m_fcEndOcc   + (lAisGapClosing ? pProfA.weight : 0);
             lProx.m_fOcc       = lProxB.m_fOcc;
@@ -435,7 +443,9 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lProx.m_uResidueGroup = lProxB.m_uResidueGroup;
         }
 
-        if (lBi == -1) {
+            // Gap introduced in profile B only
+
+        else if (lBi == -1) {
             lProx.m_fcStartOcc = lProxA.m_fcStartOcc + (lBisGapOpening ? pProfB.weight : 0);
             lProx.m_fcEndOcc   = lProxA.m_fcEndOcc   + (lBisGapClosing ? pProfB.weight : 0);
             lProx.m_fOcc       = lProxA.m_fOcc;
