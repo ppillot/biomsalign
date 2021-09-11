@@ -456,8 +456,12 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lProx.m_uResidueGroup = lProxA.m_uResidueGroup;
         }
 
-        lProx.m_ScoreGapOpen  = lGapO / 2 * (1 - lProx.m_fcStartOcc) * w;
-        lProx.m_ScoreGapClose = lGapO / 2 * (1 - lProx.m_fcEndOcc)   * w;
+            // Open gap penalty is half the global gap open penalty,
+            // weighted, reduced by the number of gaps already there
+            // and opened at the same position.
+
+        lProx.m_ScoreGapOpen  = lGapO / 2 * (1 - lProx.m_fcStartOcc) * lProx.m_fOcc;
+        lProx.m_ScoreGapClose = lGapO / 2 * (1 - lProx.m_fcEndOcc)   * lProx.m_fOcc;
 
     }
 
