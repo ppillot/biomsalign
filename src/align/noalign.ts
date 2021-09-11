@@ -96,7 +96,7 @@ type TMinzStore = {
 }
 
 const KSIZE = 8;    // fits in 16bits
-const WSIZE = 16;
+const WSIZE = 24;   // empirical
 const EXTENSION_THRESHOLD = KSIZE/4; // don't extend when more than 25% difference
 
 
