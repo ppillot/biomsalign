@@ -151,6 +151,19 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
         count: 0
     };
     let lCurrMinzPos = NaN;
+    let j = 0;
+
+        // Main loop for minimizer computation.
+        // i is indexing kmers. The kmer at index i is considered to be the
+        // kmer entering in the sliding window.
+        // The sliding window starts at i - window length + kmer length as Kmer(i)
+        // is part of the window.
+        // Computing the minimizer of the sliding window is finding the kmer with
+        // the lowest value in this window.
+        // This is done using a deque where kmers entering the window (kmer(i))
+        // are appended to the tail and remove all kmers at the tail that are of
+        // higher value. This maintains a sorting of kmers in the deque.
+        // Hence the deque head contains the kmer with minimal value.
 
     for (let i = 0; i < lKarr.length; i++) {
         const lKmer = lKarr[i];
@@ -166,12 +179,15 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
         ){
             lQueue.popTail();
         }
+
+            // Append current kmer to tail
+
         lQueue.pushTail(i);
 
-        if (i<lStartStore) continue;
+        if (i < lStartStore) continue;  // compute first window
 
             // Remove kmers that are not in this window anymore
-// TODO: why use windowsize - kmersize and not just windowsize?
+
         while (lQueue.getHead() <= i - 1 - lStartStore) {
             lQueue.popHead();
         }
@@ -180,12 +196,11 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
 
         let lHead = lQueue.getHead();
 
-            // Is it the same minimizer as last time?
+            // Is it the same minimizer as in previous loop iteration?
             // If yes, only extend the minimized subarray
 
         if (lHead === lCurrMinzPos) {
             lStoreMinz.winPosEnd[lStoreMinz.count - 1] = i + lKSIZE;
-            //lPrevMinz.winPosEnd = i + lKSIZE;
         } else {
             const lHeadKmer = lKarr[lHead];
             const lIdx = lStoreMinz.count;
@@ -197,7 +212,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             lStoreMinz.winPosEnd[lIdx] = i + lKSIZE;
             lCurrMinzPos = lHead;
 
-                // Add the kmer to the hash, either as a new list or as a new
+                // Add the kmer to the map, either as a new list or as a new
                 // item in a previous list (when the same kmer also minimizes
                 // another window)
 
