@@ -354,8 +354,6 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
 
     const lProf = new ProfPos(l, params.abSize, n, w);
 
-    console.log(pProfA.weight, pProfB.weight, w)
-
     const lGapO = params.gapOP;
     let lProx = lProf.getProxy();
     let lProxA = pProfA.getProxy();
