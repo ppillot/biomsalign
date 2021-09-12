@@ -251,7 +251,6 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
     * @returns {array} array containing weights for each node in the cluster tree
     */
  export function clustalWeights (cluster: Tree) {
-    const tabWeights: number[] = [];
     let totalWeight = 0;
     const root = cluster[cluster.length - 1];
 
@@ -260,24 +259,24 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
             nbLeaves = 0;
 
         switch (node.type) {
-        case NODE_TYPE.ROOT:
-            node.weight = 0;
-            setWeight(cluster[node.childA]);
-            setWeight(cluster[node.childB]);
-            break;
-        case NODE_TYPE.NODE:
-            edgeLength = cluster[node.parent].distance - node.distance;
-            nbLeaves = node.id.split(',').length;
-            node.weight = cluster[node.parent].weight + edgeLength / nbLeaves;
+            case NODE_TYPE.ROOT:
+                node.weight = 0;
+                setWeight(cluster[node.childA]);
+                setWeight(cluster[node.childB]);
+                break;
+            case NODE_TYPE.NODE:
+                edgeLength = cluster[node.parent].distance - node.distance;
+                nbLeaves = node.id.split(',').length;
+                node.weight = cluster[node.parent].weight + edgeLength / nbLeaves;
 
-            setWeight(cluster[node.childA]);
-            setWeight(cluster[node.childB]);
-            break;
-        case NODE_TYPE.LEAF:
-            edgeLength = cluster[node.parent].distance;
-            node.weight = cluster[node.parent].weight + edgeLength;
-            totalWeight += node.weight;
-            break;
+                setWeight(cluster[node.childA]);
+                setWeight(cluster[node.childB]);
+                break;
+            case NODE_TYPE.LEAF:
+                edgeLength = cluster[node.parent].distance;
+                node.weight = cluster[node.parent].weight + edgeLength;
+                totalWeight += node.weight;
+                break;
         }
     };
 
