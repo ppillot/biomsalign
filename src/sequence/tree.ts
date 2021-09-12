@@ -283,15 +283,7 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
     setWeight(root);
 
-    //normalize weights to 1
-    // TODO: does is matter that internal nodes weights are not normalized?
-    var i = 0;
-    while (cluster[i].type == NODE_TYPE.LEAF) {
-        tabWeights[i] = cluster[i].weight /= totalWeight;
-        i++;
-    }
-
-    return tabWeights;
+    return cluster.map(c => c.weight);
 };
 
 /**
