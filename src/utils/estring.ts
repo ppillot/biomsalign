@@ -264,8 +264,8 @@ export function estringDifference (estringB: number[], estringA: number[]) {
                 } else {
                     lEstring.push(Math.abs(lValA));
                 }
+                lValB -= lValA;
                 lValA = estringA[++i];
-                if (lValA) lValB -= lValA;  // lValA can be undefined at last iteration
                 continue;
             } else {
                 // this shan't happen: estringB can't introduce less gaps than
