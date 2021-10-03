@@ -207,7 +207,7 @@ export function estringMerge(estringA: number[], estringB: number[]) {
  * applying estringA that is not found when applying estringB)
  * X: MQTIF
  * A: MQQTIIF       B: MQVTIFE      A: MQQTIIF-
- * X: MQ-TI-F       X: MT-TIF-      X: MG-TI-F- <2,-1,2,-1,1,-1>
+ * X: MQ-TI-F       X: MT-TIF-      X: MQ-TI-F- <2,-1,2,-1,1,-1>
  *  <2,-1,2,-1,1>   <2,-1,3,-1>     B: MQVTI-FE
  *
  * difference <2,-1,2,-1,1,-1> - <2,-1,3,-1> = <5,-1,2>
@@ -265,7 +265,7 @@ export function estringDifference (estringB: number[], estringA: number[]) {
                     lEstring.push(Math.abs(lValA));
                 }
                 lValA = estringA[++i];
-                lValB -= lValA;
+                if (lValA) lValB -= lValA;  // lValA can be undefined at last iteration
                 continue;
             } else {
                 // this shan't happen: estringB can't introduce less gaps than
