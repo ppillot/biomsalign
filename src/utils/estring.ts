@@ -239,7 +239,7 @@ export function estringDifference (estringB: number[], estringA: number[]) {
             continue;
         }
 
-        if (Math.sign(lValA) === Math.sign(lValB)) {
+        else if (Math.sign(lValA) === Math.sign(lValB)) {
             if (lValA > 0) {
                 // positive sign. lValB can only be smaller than lValA
                 // (otherwise estringA contains gaps not accounted for in
@@ -279,13 +279,14 @@ export function estringDifference (estringB: number[], estringA: number[]) {
         // be kept.
         // if valB is positive, then estringA introduces a gap that is not in
         // estringB, which is not possible.
-        if (lValB < 0) {
+        else if (lValB < 0) {
             if (lCurVal < 0) {
                 lEstring[lEstring.length - 1] = lCurVal + lValB;
             } else {
                 lEstring.push(lValB);
             }
             lValB = estringB[++j];
+            continue;
         } else {
             return undefined;
         }
