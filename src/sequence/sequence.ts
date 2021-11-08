@@ -43,7 +43,7 @@ export function getSequenceType(seq: string) {
 
     if (isAmino && isExtendedNuc) return guessSequenceType(seq);
 
-    if (regExtAmino.test(seq)) return SEQUENCE_TYPE.PROTEIN;
+    if (regExtAmino.test(seq)) return guessSequenceType(seq);
 
     throw new Error('Unrecognized sequence type: ' + seq);
 }
