@@ -141,7 +141,7 @@ class BioMSAClass {
 
             // Add sequence to store
 
-        this.sequences.push(makeSequence(seq));
+        this.sequences.push(makeSequence(seq, this.typeSeq));
     }
 
     /**
