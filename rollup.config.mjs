@@ -1,6 +1,6 @@
-import typescript from 'rollup-plugin-typescript2'
-import pkg from './package.json'
-import {terser} from 'rollup-plugin-terser';
+import typescript from '@rollup/plugin-typescript'
+import pkg from './package.json' assert { type: 'json' }
+import terser from '@rollup/plugin-terser';
 
 export default {
     input: 'src/index.ts',
@@ -21,12 +21,12 @@ export default {
       ...Object.keys(pkg.dependencies || {}),
       ...Object.keys(pkg.peerDependencies || {}),
     ],plugins: [
-        typescript({
-          typescript: require('typescript'),
-        }),
+        typescript(),
         (process.env.NODE_ENV === 'production'
           && terser({
-            format: {comments: false}
+            format: {comments: false},
+            compress: {ecma: 2015, passes: 2},
+            mangle: { reserved: ['config']}
           })
         )
       ],
