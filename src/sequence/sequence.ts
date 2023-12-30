@@ -260,16 +260,18 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     const l = tabSeq.length;
     const distTab: number[][] = tabSeq.map(() => []);
     let lKmerI: BitArray;
-    let lSeqILen: number;
     let lDistance: number;
+    let kbitsICount: number;
+    let commonKbitsCount: number;
 
     for (let i = 0; i < l; i++) {
         distTab[i][i] = 0;
         lKmerI = lKmer[i];
-        lSeqILen = tabSeq[i].compressedSeq.length;
+        kbitsICount = lKmerI.getSize()
 
         for (let j = i + 1; j < l; j++) {
-            lDistance = 1 - lKmerI.getIntersectionSize(lKmer[j]) / lSeqILen;
+            commonKbitsCount = lKmerI.getIntersectionSize(lKmer[j])
+            lDistance = 1 - (commonKbitsCount  / (kbitsICount + lKmer[j].getSize() - commonKbitsCount));    // Tanimoto
             distTab[j][i] = distTab[i][j] = lDistance;
         }
 
