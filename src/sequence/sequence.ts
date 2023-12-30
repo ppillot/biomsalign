@@ -218,9 +218,10 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     // for sequences with low complexity).
 
     // Make the 6/4-kmer bitsets
+    const KMER_LENGTH = 6
     const isProtein = tabSeq[0].type === SEQUENCE_TYPE.PROTEIN;
-    const alphabetSize = isProtein ? 6 : 4;
-    const bitsetLength = Math.pow(alphabetSize, 6);
+    const ALPHABET_SIZE = isProtein ? 6 : 4;
+    const bitsetLength = Math.pow(ALPHABET_SIZE, KMER_LENGTH);
     const lKmer = tabSeq.map((seq) => {
         const bitset = new BitArray(bitsetLength);
         const seqAsNum = isProtein ? seq.compressedSeq : seq.encodedSeq;
@@ -228,21 +229,20 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         // Value for a tuple is 1st letter + 6*2nd letter + 36*3rd letter...
 
         let tupleval = 0;
-        for (let i = 0; i <= 5; i++ ) {
-            tupleval += seqAsNum[i] * Math.pow(alphabetSize, i);
+        for (let i = 0; i < KMER_LENGTH; i++ ) {
+            tupleval += seqAsNum[i] * Math.pow(ALPHABET_SIZE, i);
         }
         bitset.set(tupleval);
 
         // Compute next tuple from previous one
 
-        const topLetterFactor = Math.pow(alphabetSize, 5);
-        for (let i = 6, imax = seqAsNum.length; i < imax; i++) {
+        const topLetterFactor = Math.pow(ALPHABET_SIZE, 5);
+        for (let i = KMER_LENGTH, imax = seqAsNum.length; i < imax; i++) {
             // remove lowest letter from tuple
-            tupleval -= seqAsNum[i - 6];
+            tupleval -= seqAsNum[i - KMER_LENGTH];
 
-            // shift value by 6
-
-            tupleval /= 6;
+            // shift value by alphabetSize power 1
+            tupleval /= ALPHABET_SIZE;
 
             // add highest letter to tuple
             tupleval += seqAsNum[i] * topLetterFactor;
