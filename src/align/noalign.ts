@@ -69,7 +69,7 @@ type TRange = {
      * start (top tip) of this diagonal
      */
     begin: number,
-    /** X axis coordinate fot the end (bottom tip) of this diagonal */
+    /** X axis coordinate for the end (bottom tip) of this diagonal */
     end: number
 };
 
@@ -221,7 +221,7 @@ export function extractMinimizers (seq: TSequence, ksize: number, wsize: number)
             if (!lMinzMap.has(lHeadKmer)) {
                 lMinzMap.set(lHeadKmer, [lIdx]);
             } else {
-                let lList = lMinzMap.get(lHeadKmer) as number[];
+                let lList = lMinzMap.get(lHeadKmer)!;
                 lList.push(lIdx);
             }
 
@@ -244,7 +244,7 @@ export function noalignPair(
     pMinzB?: TMinzComp
 ) {
 
-    let lDebugStats: {[k: string]: Partial<{a: any, b: any, all: any}>} = {};
+    const lDebugStats: {[k: string]: Partial<{a: any, b: any, all: any}>} = {};
 
     const [lMinzA, lMinzAStore, lKmerAArr] = pMinzA ?? extractMinimizers(seqA, KSIZE, WSIZE);
     const [lMinzB, lMinzBStore, lKmerBArr] = pMinzB ?? extractMinimizers(seqB, KSIZE, WSIZE);
@@ -258,7 +258,7 @@ export function noalignPair(
     const lMaxLen = Math.max(seqA.rawSeq.length, seqB.rawSeq.length);
     const lDiagMap = new Map<number, TRange[]>();
 
-    // Loop through all kmers fron sequence A to find which ones are matching
+    // Loop through all kmers from sequence A to find which ones are matching
     // in sequence B. Doing so, favour the kmers that minimize a common window.
     // Those are better seed candidates for diagonals. They also cover a longer
     // range and thus avoid extra computations.
@@ -267,7 +267,7 @@ export function noalignPair(
         let kmer = lMinzAStore.kmer[i];
 
         if (!lMinzB.has(kmer)) continue;
-        let listB = lMinzB.get(kmer) as number[];
+        let listB = lMinzB.get(kmer)!;
         if (listB.length > 4) continue; // poor minimizer. prevent combinatorial explosion
 
             // Compare minimized string in A with those in listB to take advantage of
@@ -675,7 +675,7 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
        like algorithm. Here, the Word Sequence is replaced by Suite so as to
        avoid confusion with biological sequences.
        In the context of diagonals, a new diagonal can be appended to a list
-       iff it is in the SW quadrant from the bottom tip of the last diagonal
+       iff it is in the SE quadrant from the bottom tip of the last diagonal
        in the list.
        ____________________________________________________________________
        |              \
@@ -694,12 +694,12 @@ function extractLongestPath (pDiagList: TRange[], pLenA: number, pLenB: number) 
        - and its row (defined by begin - diag id) is lower.
          (the rationale is that this new diagonal will be able to catch next
          diagonals that can't be caught by the current minimum)
-       - or if this diagonal by itself long enough to be the optimum while not
-         being able to be appended to any other list.
+       - or if this diagonal is, by itself, long enough to be the optimum while
+         not being able to be appended to any other list.
 
        Otherwise, we search for the list of diagonals with maximum size that can
        accept the new diagonal and we duplicate it + append the new diagonal to
-       it. The new suite is placed in the list of suit so that the order of
+       it. The new suite is placed in the list of suites so that the order of
        increasing sizes is maintained.
        When this addition is made, the list of suites is cleaned to remove any
        list that is shorter and that also extends past this new extent (in other
