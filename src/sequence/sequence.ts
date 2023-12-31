@@ -255,30 +255,94 @@ export function distanceMatrix(tabSeq: TSequence[]) {
 
     if (DEBUG) Log.add('K-mer bitset computation');
 
-    // compute distance matrix values
+    // Compute distance matrix values, with correction for sequence length.
+    // The distance is based on shared kmers. Intuitively, the closest 2 sequences
+    // are, the more kmers they have in common.
+    // Here, for reasons of computational speed, we compute binary matchings: each
+    // kmer value is associated with a bit in a BitSet. Intersection size between
+    // bitsets increases with sequence proximity.
+    // The distance is computed as a Tanimoto distance between the BitSets of 2
+    // sequences.
+    // When comparing several sequences between each other, if the sequences have
+    // a noticeable variety of sizes, longer sequences will tend to have more
+    // matches than shorter ones.
+    // Under the assumption that the sequences being compared are homologous, some
+    // matches are due to a common origin, and some are due to a background noise
+    // related with the probability that 2 sequences at random might have matching
+    // kmers.
+    // This background noise is evaluated here, to correct for the effect of long
+    // sequences having an increased probability of matching by random.
+    // The expected random matches are removed from the biset sizes.
 
     const l = tabSeq.length;
     const distTab: number[][] = tabSeq.map(() => []);
     let lKmerI: BitArray;
     let lDistance: number;
     let kbitsICount: number;
+    let kbitsJCount: number;
     let commonKbitsCount: number;
+    let backgroundMatchingProbability: number
+    let expectedRandomMatches: number
 
     for (let i = 0; i < l; i++) {
         distTab[i][i] = 0;
         lKmerI = lKmer[i];
         kbitsICount = lKmerI.getSize()
+        backgroundMatchingProbability = computeBackgroundKmerMatch(kbitsICount, bitsetLength)
 
         for (let j = i + 1; j < l; j++) {
             commonKbitsCount = lKmerI.getIntersectionSize(lKmer[j])
-            lDistance = 1 - (commonKbitsCount  / (kbitsICount + lKmer[j].getSize() - commonKbitsCount));    // Tanimoto
-            distTab[j][i] = distTab[i][j] = lDistance;
+            kbitsJCount = lKmer[j].getSize()
+            expectedRandomMatches = Math.ceil(backgroundMatchingProbability * kbitsJCount);
+            commonKbitsCount -= expectedRandomMatches;
+
+            // Tanimoto/Jacquard distance corrected for random matches
+            lDistance = 1 - (
+                commonKbitsCount / (
+                    kbitsICount - expectedRandomMatches
+                    + kbitsJCount - expectedRandomMatches
+                    - commonKbitsCount
+                )
+            );
+            distTab[j][i] = distTab[i][j] = Math.max(lDistance, 0);
         }
 
     }
 
     if (DEBUG) Log.add('K-mer distance computation');
     return distTab;
+}
+
+/**
+ * Estimation of the frequency of random matches with the given BitSet.
+ * kmerCount, is the number of Kmers that were set in the BitSet,
+ * universeSize is the total number of possible kmers.
+ * The computation here is loosely based on the "Birthday Paradox".
+ * We try to estimate how many kmers we shall compare with the given sequence to
+ * have 50% chance of getting a random match.
+ * For example, if the kmer size is 1000 and the universe of all kmers is 4000,
+ * there are 3/4 chance to *not* match at first "draw", next, the probability
+ * for *not* matching is 0.56, and it falls to 0.42 after 3 attempts (3/4 ^ 3).
+ * The value `x` we are looking for is given by the equation:
+ *
+ * 1/2 = (1 - kmers count / total number of kmers) ^ x
+ *
+ * (Note: the `1 - k` part is due to the fact that we are looking at the
+ * probability of a non-matching event)
+ *
+ * Once we have this value x, we can predict the frequency of matches that is
+ * expected due to chance.
+ * For example, with a number of 1000 kmers in a universe of 4000, the expected
+ * number of kmers to have a 50% chance of matching is 2.4.
+ * If we compare with a sequence aving 400 kmers, we can estimate that 83 matches
+ * can be attributed to random noise: 400 / (2 * 2.4)
+ */
+function computeBackgroundKmerMatch(kmerCount: number, universeSize: number) {
+    const coverage = kmerCount / universeSize;
+    // k50 is the expected number of kmers to "draw" to have a 50% probability of
+    // matching an existing kmer.
+    const k50 = - Math.LN2 / Math.log(1 - coverage);
+    return 1 / (2 * k50);
 }
 
 export function sortMSA<K>(msa: K[], order: number[]): K[] {
