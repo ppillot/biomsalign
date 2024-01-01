@@ -7,7 +7,7 @@
 
 import { TAlignOpt } from "..";
 
-export enum SEQUENCE_TYPE {
+export const enum SEQUENCE_TYPE {
     PROTEIN,
     NUCLEIC,
     UNSET

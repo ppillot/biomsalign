@@ -9,7 +9,7 @@ import { TAlignmentParam } from '../align/params';
 import { seqToProf, ProfPos } from './profile';
 import { TSequence } from './sequence';
 
-export enum NODE_TYPE {
+export const enum NODE_TYPE {
     LEAF,
     NODE,
     ROOT
