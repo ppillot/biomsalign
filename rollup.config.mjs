@@ -24,9 +24,15 @@ export default {
         typescript(),
         (process.env.NODE_ENV === 'production'
           && terser({
+            toplevel: true,
             format: {comments: false},
-            compress: {ecma: 2015, passes: 2},
-            mangle: { reserved: ['config']}
+            compress: {ecma: 2015, passes: 3, unsafe: true},
+            mangle: {
+              properties: {
+                reserved: ['biomsa']
+              }
+            },
+            nameCache: {}
           })
         )
       ],
