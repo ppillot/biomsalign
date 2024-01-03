@@ -29,7 +29,7 @@ export default {
             compress: {ecma: 2015, passes: 3, unsafe: true},
             mangle: {
               properties: {
-                reserved: ['biomsa']
+                reserved: ['biomsa', 'gapopen', 'gapextend', 'matrix', 'method', 'type', 'gapchar', 'debug']
               }
             },
             nameCache: {}
