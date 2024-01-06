@@ -414,10 +414,10 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
             lProx.m_fcCounts.set(lProxA.m_fcCounts);
             lProx.m_wCounts .set(lProxA.m_wCounts);
             for (let i = 0; i < pProfB.alphaSize; i++) {
-                let v = pProfB.m_fcCounts[i];
+                let v = lProxB.m_fcCounts[i];
                 if (v) {
                     lProx.m_fcCounts[i] += v;
-                    lProx.m_wCounts[i] += pProfB.m_wCounts[i];
+                    lProx.m_wCounts[i] += lProxB.m_wCounts[i];
                 }
                 if (lProx.m_fcCounts[i]) {
                     lProx.m_uSortOrder[lNbRes] = i;
