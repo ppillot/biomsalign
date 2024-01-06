@@ -520,7 +520,7 @@ export function MSAMSAAlignment(
             lResList = profB.m_uSortOrder.subarray(lOffset, lOffset + kmax );
             while (k < kmax) {
                 lResProfNb = lResList[k];
-                lMatch += profB.m_wCounts[lOffset + lResProfNb] * lProfAAAScores[lResProfNb];
+                lMatch += lProfAAAScores[lResProfNb];   // weighted scores already used here. Do not multiply by weight.
                 k++;
             }
 
