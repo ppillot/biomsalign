@@ -300,8 +300,8 @@ export function distanceMatrix(tabSeq: TSequence[]) {
             commonKbitsCount -= expectedRandomMatches;
             commonKbitsCount = Math.max(commonKbitsCount, 0)
 
-            // Tanimoto/Jacquard distance corrected for random matches
-            distance = 1 - (commonKbitsCount / bitsetLength);
+            // Simple Matching distance corrected for random matches
+            distance = 1 - (commonKbitsCount / (bitsetLength - expectedRandomMatches));
             distTab[j][i] = distTab[i][j] = distance;
         }
 
