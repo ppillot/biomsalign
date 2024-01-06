@@ -261,8 +261,10 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     // Here, for reasons of computational speed, we compute binary matchings: each
     // kmer value is associated with a bit in a BitSet. Intersection size between
     // bitsets increases with sequence proximity.
-    // The distance is computed as a Tanimoto distance between the BitSets of 2
-    // sequences.
+    // The distance is computed as a Simple Matching Distance between the
+    // BitSets of 2 sequences. Compared to a Tanimoto distance, it also counts
+    // non-set bits (0) as matches which disfavours comparisons between sequences
+    // of various sizes.
     // When comparing several sequences between each other, if the sequences have
     // a noticeable variety of sizes, longer sequences will tend to have more
     // matches than shorter ones.
@@ -277,7 +279,7 @@ export function distanceMatrix(tabSeq: TSequence[]) {
     const l = tabSeq.length;
     const distTab: number[][] = tabSeq.map(() => []);
     let lKmerI: BitArray;
-    let lDistance: number;
+    let distance: number;
     let kbitsICount: number;
     let kbitsJCount: number;
     let commonKbitsCount: number;
@@ -291,25 +293,24 @@ export function distanceMatrix(tabSeq: TSequence[]) {
         backgroundMatchingProbability = computeBackgroundKmerMatch(kbitsICount, bitsetLength)
 
         for (let j = i + 1; j < l; j++) {
-            commonKbitsCount = lKmerI.getIntersectionSize(lKmer[j])
             kbitsJCount = lKmer[j].getSize()
+            commonKbitsCount = lKmerI.getIntersectionSize(lKmer[j])
+            commonKbitsCount += bitsetLength - (kbitsICount + kbitsJCount - commonKbitsCount)
             expectedRandomMatches = Math.ceil(backgroundMatchingProbability * kbitsJCount);
             commonKbitsCount -= expectedRandomMatches;
+            commonKbitsCount = Math.max(commonKbitsCount, 0)
 
             // Tanimoto/Jacquard distance corrected for random matches
-            lDistance = 1 - (
-                commonKbitsCount / (
-                    kbitsICount - expectedRandomMatches
-                    + kbitsJCount - expectedRandomMatches
-                    - commonKbitsCount
-                )
-            );
-            distTab[j][i] = distTab[i][j] = Math.max(lDistance, 0);
+            distance = 1 - (commonKbitsCount / bitsetLength);
+            distTab[j][i] = distTab[i][j] = distance;
         }
 
     }
 
-    if (DEBUG) Log.add('K-mer distance computation');
+    if (DEBUG) {
+        Log.add('K-mer distance computation');
+        console.table(distTab)
+    }
     return distTab;
 }
 
