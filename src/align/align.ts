@@ -250,7 +250,7 @@ export function MSASeqAlignment(
 ) {
 
     const seqB = nodeB.seq,
-        //wA = noeudA.weight, //probably unnecessary
+        wB = nodeB.weight,
         lSeqBLen = seqB.rawSeq.length,
         lProfALen = nodeA.profile.length;
 
@@ -278,7 +278,7 @@ export function MSASeqAlignment(
         /** Position specific substitution scores of profile A at pos i-1 */
         lProfASScores = new Float32Array(params.abSize);
 
-    const GAP_OPEN    = params.gapOP;
+    const GAP_OPEN    = params.gapOP * wB;
     const GAP_OPEN_B  = GAP_OPEN / 2;
     const GAP_CLOSE_B = GAP_OPEN / 2;
 
