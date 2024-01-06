@@ -5,7 +5,7 @@
  * @copyright 2020
  */
 
-import { TAlignmentParam } from '../align/params';
+import { DEBUG, TAlignmentParam } from '../align/params';
 import { seqToProf, ProfPos } from './profile';
 import { TSequence } from './sequence';
 
@@ -106,6 +106,10 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
     }
 
     clusters[clusters.length - 1].type = NODE_TYPE.ROOT;
+
+    if (DEBUG) {
+        console.table(clusters)
+    }
 
     return clusters;
 }
@@ -282,7 +286,13 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
 
     setWeight(root);
 
-    return cluster.map(c => c.weight);
+    const weights = cluster.map(c => c.weight);
+
+    if (DEBUG) {
+        console.table(weights)
+    }
+
+    return weights
 };
 
 /**
