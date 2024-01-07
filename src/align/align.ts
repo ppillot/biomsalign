@@ -266,6 +266,7 @@ export function MSASeqAlignment(
         tb = 0,
         lLastInsert = 0.0,
         lPrevLastInsert = 0.0,
+        lPrevDel = 0.,
         lPrevMatch = 0.0,
         lDeletej_1 = 0.0,
         lInserti_1 = 0.0,
@@ -326,7 +327,7 @@ export function MSASeqAlignment(
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
-            lGapExtendA = lDelArr[j];
+            lGapExtendA = lPrevDel = lDelArr[j];
             if (j === lSeqBLen) { //terminal penalties are halved
                 lGapOpenA -= lProfAGapOP / 2;
             }
@@ -353,7 +354,7 @@ export function MSASeqAlignment(
             }
 
             //Match i,j score computation
-            lDeletej_1 = lDelArr[j] + lProfAGapCP; //it should be prev
+            lDeletej_1 = lPrevDel + lProfAGapCP; //it should be prev
             lInserti_1 = lPrevLastInsert + GAP_CLOSE_B;
             lMatch = lMatchArr[j - 1] + lProfASScores[sB[j - 1]];
 
@@ -434,6 +435,7 @@ export function MSAMSAAlignment(
         lLastInsert = 0.0,
         lPrevLastInsert = 0,
         lPrevMatch  = 0.0,
+        lPrevDel = 0.,
         lDeletej_1  = 0.0,
         lInserti_1  = 0.0,
         lProfAGapOP = 0.0,
@@ -483,7 +485,7 @@ export function MSAMSAAlignment(
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
-            lGapExtendA = lDelArr[j];
+            lGapExtendA = lPrevDel = lDelArr[j];
             if (j === lProfBLen && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lGapOpenA -= lProfAGapOP / 2;
             }
@@ -522,8 +524,7 @@ export function MSAMSAAlignment(
                 k++;
             }
 
-            //match = Match[j - 1] + _utils.sumOfPairsScorePP3(profAAAScores, profB[j - 1]);
-            lDeletej_1 = lDelArr[j] + lProfAGapCP;
+            lDeletej_1 = lPrevDel + lProfAGapCP;
             lInserti_1 = lPrevLastInsert + profB.m_ScoreGapClose[j - 1];
 
             if (j === 1 && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) { //terminal penalties are halved
