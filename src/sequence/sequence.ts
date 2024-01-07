@@ -387,28 +387,27 @@ function fractionalIdentity(seqA: string, seqB: string) {
     seqA = seqA || '';
     seqB = seqB || '';
 
-    var match = 0,
+    let match = 0,
         tokenA = '',
         tokenB = '',
         lA = 0,
-        lB = 0,
-        maxI = seqA.length;
+        lB = 0;
+    const maxI = seqA.length;
 
-    for (var i = 0; i < maxI; i++) {
+    for (let i = 0; i < maxI; i++) {
         tokenA = seqA.charAt(i);
         tokenB = seqB.charAt(i);
+        lA += (tokenA !== '-') ? 1 : 0;
+        lB += (tokenB !== '-') ? 1 : 0;
 
-        if ((tokenA === '-') || (tokenB === '-')) {
-            lA += (tokenA !== '-') ? 1 : 0;
-            lB += (tokenB !== '-') ? 1 : 0;
-            continue;
-        } else {
-            lA++;
-            lB++;
-            if (tokenA === tokenB) {
-                match++;
-            }
+        if (tokenA === '-' || tokenB === '-') {
+            continue
         }
+
+        if (tokenA === tokenB) {
+            match++;
+        }
+
     }
     return match / Math.min(lA, lB);
 }
@@ -428,7 +427,7 @@ export function distanceKimura (msa: string[]) {
     let dk = 0;     // Computed distance
 
     //parcours de la matrice
-    for (var i = 0; i < l; i++) {
+    for (let i = 0; i < l; i++) {
 
         if ( distMatrix[i] === undefined ) {
             distMatrix[i] = new Array(l);
@@ -436,7 +435,7 @@ export function distanceKimura (msa: string[]) {
 
         distMatrix[i][i] = 0;
 
-        for (var j = i + 1; j < l; j++) {
+        for (let j = i + 1; j < l; j++) {
 
             if (distMatrix[j] === undefined) {
                 distMatrix[j] = new Array(l);

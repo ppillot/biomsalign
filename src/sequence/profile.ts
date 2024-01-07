@@ -322,11 +322,9 @@ export function seqToProf (pSeq: TSequence, pWeight: number, params: TAlignmentP
     //  Corrections for end/begin gap penalties
     if (!(opt & ALIGNOPT.DISABLE_FAVOR_START_GAP)) {
         lProf.m_ScoreGapOpen[0]  /= 2;
-        lProf.m_ScoreGapOpen[l-1]  /= 2;
     }
     if (!(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
-        lProf.m_ScoreGapClose[0] /= 2;
-        lProf.m_ScoreGapClose[l-1] /= 2;
+        lProf.m_ScoreGapOpen[l-1]  /= 2;
     }
 
 
@@ -466,11 +464,9 @@ export function mergeProfiles (pProfA: ProfPos, pProfB: ProfPos, pESA: number[],
     //  Corrections to end/begin gap penalties
     if (!(opt & ALIGNOPT.DISABLE_FAVOR_START_GAP)) {
         lProf.m_ScoreGapOpen[0]  /= 2;
-        lProf.m_ScoreGapOpen[l-1]  /= 2;
     }
     if (!(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
-        lProf.m_ScoreGapClose[0] /= 2;
-        lProf.m_ScoreGapClose[l-1] /= 2;
+        lProf.m_ScoreGapOpen[l-1]  /= 2;
     }
 
 

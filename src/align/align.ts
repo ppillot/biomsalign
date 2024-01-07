@@ -73,14 +73,14 @@ export function pairwiseAlignment (
         isOdd = 0;
 
     // Traceback matrix size: for convenience, an extra column has been added
-    // but will remain half empty (TODO: fix iteration boundaries).
+    // but will remain half empty.
     // The traceback values are stored in a typed array of (n+1) * m / 2 bytes.
     // Using bit values for M, I and D transitions, shifted depending on the matrix
     // they encode, it's possible to encode all states using 4 bits.
     // As a cell in the array contains 8 bits, each ultimately contains the
     // results for 2 successive values in the DP matrix.
 
-    const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)); // Trace back matrix
+    const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2) + 1); // Trace back matrix
 
 
     let gapOpenA = 0,
@@ -221,9 +221,7 @@ export function pairwiseAlignment (
 
     }
 
-    // if (DEBUG) Log.add('End DP computation');
-
-    var score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 1]);
+    const score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 1]);
 
     // Traceback
     const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lSeqALen, lSeqBLen, tb);
@@ -257,7 +255,7 @@ export function MSASeqAlignment(
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
         lDelArr  : number[] = [];
-    const tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lSeqBLen + 1) / 2));
+    const tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lSeqBLen + 1) / 2) + 1);
     let tbIdx: number;
     let isOdd: number;
 
@@ -268,6 +266,7 @@ export function MSASeqAlignment(
         tb = 0,
         lLastInsert = 0.0,
         lPrevLastInsert = 0.0,
+        lPrevDel = 0.,
         lPrevMatch = 0.0,
         lDeletej_1 = 0.0,
         lInserti_1 = 0.0,
@@ -276,7 +275,7 @@ export function MSASeqAlignment(
         /** Position specific gap close penalty of profile A at pos i-1 */
         lProfAGapCP = 0.0,
         /** Position specific substitution scores of profile A at pos i-1 */
-        lProfASScores = new Float32Array(params.abSize);
+        lProfASScores: Float32Array;
 
     const GAP_OPEN    = params.gapOP * wB;
     const GAP_OPEN_B  = GAP_OPEN / 2;
@@ -328,7 +327,7 @@ export function MSASeqAlignment(
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
-            lGapExtendA = lDelArr[j];
+            lGapExtendA = lPrevDel = lDelArr[j];
             if (j === lSeqBLen) { //terminal penalties are halved
                 lGapOpenA -= lProfAGapOP / 2;
             }
@@ -355,7 +354,7 @@ export function MSASeqAlignment(
             }
 
             //Match i,j score computation
-            lDeletej_1 = lDelArr[j] + lProfAGapCP; //it should be prev
+            lDeletej_1 = lPrevDel + lProfAGapCP; //it should be prev
             lInserti_1 = lPrevLastInsert + GAP_CLOSE_B;
             lMatch = lMatchArr[j - 1] + lProfASScores[sB[j - 1]];
 
@@ -421,7 +420,7 @@ export function MSAMSAAlignment(
 
     const lProfALen = nodeA.profile.length,
         lProfBLen = nodeB.profile.length,
-        tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lProfBLen + 1) / 2));
+        tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lProfBLen + 1) / 2) + 1);
     let tbIdx: number;
     let isOdd: number;
 
@@ -436,6 +435,7 @@ export function MSAMSAAlignment(
         lLastInsert = 0.0,
         lPrevLastInsert = 0,
         lPrevMatch  = 0.0,
+        lPrevDel = 0.,
         lDeletej_1  = 0.0,
         lInserti_1  = 0.0,
         lProfAGapOP = 0.0,
@@ -485,7 +485,7 @@ export function MSAMSAAlignment(
 
             //Delete i,j score computation
             lGapOpenA = lMatchArr[j] + lProfAGapOP; //
-            lGapExtendA = lDelArr[j];
+            lGapExtendA = lPrevDel = lDelArr[j];
             if (j === lProfBLen && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) {
                 lGapOpenA -= lProfAGapOP / 2;
             }
@@ -524,8 +524,7 @@ export function MSAMSAAlignment(
                 k++;
             }
 
-            //match = Match[j - 1] + _utils.sumOfPairsScorePP3(profAAAScores, profB[j - 1]);
-            lDeletej_1 = lDelArr[j] + lProfAGapCP;
+            lDeletej_1 = lPrevDel + lProfAGapCP;
             lInserti_1 = lPrevLastInsert + profB.m_ScoreGapClose[j - 1];
 
             if (j === 1 && !(opt & ALIGNOPT.DISABLE_FAVOR_END_GAP)) { //terminal penalties are halved

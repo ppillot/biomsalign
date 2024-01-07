@@ -55,7 +55,7 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
     let nbSeq = mD.length;
     let tabIdx: number[] = [];
 
-    for (var i = 0; i < nbSeq; i++) {
+    for (let i = 0; i < nbSeq; i++) {
         clusters[i] = {
             type: NODE_TYPE.LEAF,
             seq: tSeq[i],
@@ -76,7 +76,7 @@ export function makeTree(mD: number[][], tSeq: TSequence[]) {
     let lNode: InternalNode;
     let lMinX: number;  // index in matrix of column with the min value
     let lMinY: number;  // index in matrix of row with the min value.
-    for (var i = 0, nbIterations = nbSeq - 1; i < nbIterations; i++) {
+    for (let i = 0, nbIterations = nbSeq - 1; i < nbIterations; i++) {
         // Make a node from the min value in distance matrix
 
         [lNode, lMinX, lMinY] = findMinInDistanceMatrix(mD, tabIdx);
@@ -166,7 +166,7 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
     const l = matrix.length;
 
     // loop matrix rows
-    for (var i = 0; i < l; i++) {
+    for (let i = 0; i < l; i++) {
         if (i == x || i == y) continue;
 
         // avg computation from MAFFT
@@ -259,7 +259,7 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
     const root = cluster[cluster.length - 1];
 
     function setWeight (node: LeafNode|InternalNode) {
-        var edgeLength = 0,
+        let edgeLength = 0,
             nbLeaves = 0;
 
         switch (node.type) {
@@ -301,8 +301,8 @@ function recomputeDistMatrix(matrix: number[][], x: number, y: number, tI: numbe
  * treeB.
  */
 export function compareTrees (treeA: Tree, treeB: Tree) {
-    var i = 0,
-        nbLeaves = (treeA.length + 1) / 2 + 1, //chaque noeud possède deux descendants (peuvent être un noeud ou une feuille). Le nombre de noeud est égal au nombre de feuilles -1
+    let i = 0;
+    const nbLeaves = (treeA.length + 1) / 2 + 1, //chaque noeud possède deux descendants (peuvent être un noeud ou une feuille). Le nombre de noeud est égal au nombre de feuilles -1
         //nbNodes = nbLeaves - 1,
 
         compareParentNodes = function (nodeA: InternalNode|LeafNode, nodeB: InternalNode|LeafNode) {
