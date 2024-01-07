@@ -80,7 +80,7 @@ export function pairwiseAlignment (
     // As a cell in the array contains 8 bits, each ultimately contains the
     // results for 2 successive values in the DP matrix.
 
-    const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2)); // Trace back matrix
+    const tbM = new Uint8Array(Math.ceil((lSeqALen + 1) * lSeqBLen / 2) + 1); // Trace back matrix
 
 
     let gapOpenA = 0,
@@ -255,7 +255,7 @@ export function MSASeqAlignment(
     let lMatch = 0.0,       // match score
         lMatchArr: number[] = [],
         lDelArr  : number[] = [];
-    const tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lSeqBLen + 1) / 2));
+    const tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lSeqBLen + 1) / 2) + 1);
     let tbIdx: number;
     let isOdd: number;
 
@@ -419,7 +419,7 @@ export function MSAMSAAlignment(
 
     const lProfALen = nodeA.profile.length,
         lProfBLen = nodeB.profile.length,
-        tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lProfBLen + 1) / 2));
+        tbM = new Uint8Array(Math.ceil((lProfALen + 1) * (lProfBLen + 1) / 2) + 1);
     let tbIdx: number;
     let isOdd: number;
 
