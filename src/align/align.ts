@@ -73,7 +73,7 @@ export function pairwiseAlignment (
         isOdd = 0;
 
     // Traceback matrix size: for convenience, an extra column has been added
-    // but will remain half empty (TODO: fix iteration boundaries).
+    // but will remain half empty.
     // The traceback values are stored in a typed array of (n+1) * m / 2 bytes.
     // Using bit values for M, I and D transitions, shifted depending on the matrix
     // they encode, it's possible to encode all states using 4 bits.
@@ -221,9 +221,7 @@ export function pairwiseAlignment (
 
     }
 
-    // if (DEBUG) Log.add('End DP computation');
-
-    var score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 1]);
+    const score = Math.max(lMatch, lLastInsert, lDelArr[lDelArr.length - 1]);
 
     // Traceback
     const [lEpathA, lEpathB] = tracebBackToEpaths(tbM, lSeqALen, lSeqBLen, tb);
@@ -276,7 +274,7 @@ export function MSASeqAlignment(
         /** Position specific gap close penalty of profile A at pos i-1 */
         lProfAGapCP = 0.0,
         /** Position specific substitution scores of profile A at pos i-1 */
-        lProfASScores = new Float32Array(params.abSize);
+        lProfASScores: Float32Array;
 
     const GAP_OPEN    = params.gapOP * wB;
     const GAP_OPEN_B  = GAP_OPEN / 2;
