@@ -1,6 +1,6 @@
 {
   "name": "biomsa",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "Multiple Sequence Alignment for the Browser",
   "homepage": "https://github.com/ppillot/biomsalign",
   "main": "dist/biomsa.js",
